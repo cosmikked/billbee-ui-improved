@@ -22,7 +22,7 @@ export function Dashboard() {
   ].filter(Boolean).join(' · ')
 
   return (
-    <main className="px-8 pt-7 pb-16 max-w-[1320px] mx-auto w-full">
+    <main className="px-8 pt-4 pb-16 max-w-[1320px] mx-auto w-full">
       <PageHead
         title={greeting}
         subtitle={subtitle}

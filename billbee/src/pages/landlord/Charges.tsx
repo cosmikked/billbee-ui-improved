@@ -294,23 +294,22 @@ export function Charges() {
       />
 
       {/* Delete confirmation modal */}
-      {deleteTarget && (
-        <Modal
-          title="Delete charge"
-          subtitle={`"${deleteTarget.name}" will be permanently removed from the catalog.`}
-          onClose={() => setDeleteTarget(null)}
-          footer={
-            <div className="flex gap-2 justify-end">
-              <Button variant="default" onClick={() => setDeleteTarget(null)}>Cancel</Button>
-              <Button variant="accent" onClick={handleDelete}>Delete</Button>
-            </div>
-          }
-        >
-          <Callout variant="warning" icon={<AlertTriangle size={16} strokeWidth={1.75} />}>
-            This charge will be removed from all rooms and tenants it is currently attached to. Posted bills are not affected.
-          </Callout>
-        </Modal>
-      )}
+      <Modal
+        open={deleteTarget !== null}
+        title="Delete charge"
+        subtitle={deleteTarget ? `"${deleteTarget.name}" will be permanently removed from the catalog.` : ''}
+        onClose={() => setDeleteTarget(null)}
+        footer={
+          <div className="flex gap-2 justify-end">
+            <Button variant="default" onClick={() => setDeleteTarget(null)}>Cancel</Button>
+            <Button variant="accent" onClick={handleDelete}>Delete</Button>
+          </div>
+        }
+      >
+        <Callout variant="warning" icon={<AlertTriangle size={16} strokeWidth={1.75} />}>
+          This charge will be removed from all rooms and tenants it is currently attached to. Posted bills are not affected.
+        </Callout>
+      </Modal>
     </main>
   )
 }
