@@ -7,7 +7,6 @@ import {
 import { MOCK_CYCLE_DETAIL } from '../../data/mock'
 import type { CycleBillRow, EmailStatus, BillRowStatus } from '../../types/billing'
 import { Button } from '../../components/ui/Button'
-import { IconButton } from '../../components/ui/IconButton'
 import { Card } from '../../components/ui/Card'
 import { StatTile } from '../../components/ui/StatTile'
 import { StatusBadge } from '../../components/ui/StatusBadge'
@@ -268,7 +267,7 @@ export function CycleDetail() {
           variant="warning"
           icon={<Users size={18} strokeWidth={1.75} />}
           action={
-            <Button size="sm" variant="accent">
+            <Button size="sm" variant="default">
               Generate their bills
               <ArrowRight size={13} strokeWidth={1.75} />
             </Button>
@@ -357,7 +356,7 @@ export function CycleDetail() {
                 <th className={TH} style={{ width: '96px' }}>Status</th>
                 <th className={TH} style={{ width: '96px' }}>Email</th>
                 <th className={TH}>Quick action</th>
-                <th className={`${TH} w-10`} />
+                <th className={`${TH} w-10`} aria-label="Open" />
               </tr>
             </thead>
             <tbody>
@@ -454,15 +453,23 @@ export function CycleDetail() {
                         </div>
                       </td>
 
-                      {/* Overflow */}
+                      {/* Open */}
                       <td
                         className={TD}
                         style={{ paddingTop: 'var(--pad-row)', paddingBottom: 'var(--pad-row)' }}
                         onClick={e => e.stopPropagation()}
                       >
-                        <IconButton aria-label="More options">
-                          <MoreHorizontal size={13} strokeWidth={1.75} />
-                        </IconButton>
+                        <Button
+                          size="sm"
+                          variant="primary"
+                          onClick={() => navigate(
+                            bill.status === 'draft'
+                              ? `/landlord/billing/draft/${bill.id}`
+                              : `/landlord/billing/posted/${bill.id}`
+                          )}
+                        >
+                          Open <ArrowRight size={13} strokeWidth={1.75} />
+                        </Button>
                       </td>
                     </tr>
                   )
@@ -501,7 +508,7 @@ export function CycleDetail() {
         )}
       </Card>
 
-      {/* Cycle context — collapsible */}
+      {/* Cycle context — collapsible
       <div className="mt-4">
         <button
           type="button"
@@ -532,7 +539,7 @@ export function CycleDetail() {
             </p>
           </div>
         )}
-      </div>
+      </div> */}
 
     </main>
   )

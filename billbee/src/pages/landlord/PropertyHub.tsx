@@ -5,6 +5,7 @@ import { Button } from '../../components/ui/Button'
 import { Card, CardHead } from '../../components/ui/Card'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { ProgressBar } from '../../components/ui/ProgressBar'
+import { CycleMetricBoxes } from '../../components/ui/CycleMetricBoxes'
 import { DataTable } from '../../components/ui/DataTable'
 import { Callout } from '../../components/ui/Callout'
 import type { Column } from '../../components/ui/DataTable'
@@ -48,27 +49,6 @@ function Tile({
         <ProgressBar value={bar} variant="success" className="my-0.5" />
       )}
       {sub && <span className="text-[12px] text-ink-3">{sub}</span>}
-    </div>
-  )
-}
-
-/* ── Cycle metric box ──────────────────────────────────────── */
-
-type CycleBoxVariant = 'paid' | 'posted' | 'draft' | 'none'
-
-const BOX_STYLE: Record<CycleBoxVariant, { bg: string; text: string; label: string }> = {
-  paid:   { bg: 'bg-success-soft',                         text: 'text-success',              label: 'text-success'   },
-  posted: { bg: 'bg-indigo-50 dark:bg-indigo-950/40',      text: 'text-indigo-600 dark:text-indigo-400', label: 'text-indigo-500 dark:text-indigo-400' },
-  draft:  { bg: 'bg-surface-2 border border-border',       text: 'text-ink-2',                label: 'text-ink-3'     },
-  none:   { bg: 'bg-surface-2 border border-border',       text: 'text-ink-3',                label: 'text-ink-4'     },
-}
-
-function CycleBox({ variant, count, label }: { variant: CycleBoxVariant; count: number; label: string }) {
-  const s = BOX_STYLE[variant]
-  return (
-    <div className={`flex-1 rounded-btn px-4 py-3 flex flex-col gap-0.5 ${s.bg}`}>
-      <span className={`font-display text-[28px] font-bold leading-none tracking-[-0.02em] ${s.text}`}>{count}</span>
-      <span className={`text-[12.5px] font-medium ${s.label}`}>{label}</span>
     </div>
   )
 }
@@ -167,12 +147,15 @@ export function PropertyHub() {
         />
 
         {/* 4 metric boxes */}
-        <div className="flex gap-2 mb-4">
-          <CycleBox variant="paid"   count={cycle.paid}          label="Paid"        />
-          <CycleBox variant="posted" count={cycle.posted}       label="Posted"      />
-          <CycleBox variant="draft"  count={cycle.drafts}       label="Draft"       />
-          <CycleBox variant="none"   count={cycle.notYetDrafted} label="Not drafted" />
-        </div>
+        <CycleMetricBoxes
+          className="mb-4"
+          items={[
+            { variant: 'paid',   count: cycle.paid,          label: 'Paid'        },
+            { variant: 'posted', count: cycle.posted,        label: 'Posted'      },
+            { variant: 'draft',  count: cycle.drafts,        label: 'Draft'       },
+            { variant: 'none',   count: cycle.notYetDrafted, label: 'Not drafted' },
+          ]}
+        />
 
         {/* Progress bar */}
         <div className="flex items-center gap-3 text-[12.5px] text-ink-3 mb-2">
