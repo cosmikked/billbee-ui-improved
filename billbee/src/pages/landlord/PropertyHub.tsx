@@ -1,12 +1,8 @@
 import { useNavigate, useOutletContext } from 'react-router-dom'
-import {
-  ArrowRight, AlertTriangle,
-  DoorOpen, UserPlus, Tag, Send,
-} from 'lucide-react'
+import { ArrowRight, AlertTriangle } from 'lucide-react'
 import { MOCK_PROPERTY_HUB } from '../../data/mock'
 import { Button } from '../../components/ui/Button'
 import { Card, CardHead } from '../../components/ui/Card'
-import { StatTile } from '../../components/ui/StatTile'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { ProgressBar } from '../../components/ui/ProgressBar'
 import { DataTable } from '../../components/ui/DataTable'
@@ -15,6 +11,8 @@ import type { Column } from '../../components/ui/DataTable'
 import type { BillStatus } from '../../components/ui/StatusBadge'
 import type { PropertyHubBill, PropertyHubPayment } from '../../types/properties'
 import type { PropertyLayoutContext } from './PropertyLayout'
+
+/* ── Helpers ───────────────────────────────────────────────── */
 
 function fmtNum(n: number) {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
@@ -29,12 +27,53 @@ function fmtPHP(n: number) {
   return `₱${n.toLocaleString('en-PH')}`
 }
 
-const CYCLE_CHIPS: Array<{ key: string; status: BillStatus }> = [
-  { key: 'paid',    status: 'paid'    },
-  { key: 'posted',  status: 'posted'  },
-  { key: 'drafts',  status: 'draft'   },
-  { key: 'overdue', status: 'overdue' },
-]
+/* ── Stat tile ─────────────────────────────────────────────── */
+
+function Tile({
+  label,
+  value,
+  sub,
+  bar,
+}: {
+  label: string
+  value: React.ReactNode
+  sub?: React.ReactNode
+  bar?: number   // 0–100, renders a thin green progress bar
+}) {
+  return (
+    <div className="bg-surface border border-border rounded-card flex flex-col gap-1" style={{ padding: 'var(--pad-card)' }}>
+      <span className="text-[11px] font-semibold uppercase tracking-[0.07em] text-ink-3">{label}</span>
+      <span className="font-display text-[26px] font-bold tracking-[-0.02em] leading-[1.1] text-ink">{value}</span>
+      {bar !== undefined && (
+        <ProgressBar value={bar} variant="success" className="my-0.5" />
+      )}
+      {sub && <span className="text-[12px] text-ink-3">{sub}</span>}
+    </div>
+  )
+}
+
+/* ── Cycle metric box ──────────────────────────────────────── */
+
+type CycleBoxVariant = 'paid' | 'posted' | 'draft' | 'none'
+
+const BOX_STYLE: Record<CycleBoxVariant, { bg: string; text: string; label: string }> = {
+  paid:   { bg: 'bg-success-soft',                         text: 'text-success',              label: 'text-success'   },
+  posted: { bg: 'bg-indigo-50 dark:bg-indigo-950/40',      text: 'text-indigo-600 dark:text-indigo-400', label: 'text-indigo-500 dark:text-indigo-400' },
+  draft:  { bg: 'bg-surface-2 border border-border',       text: 'text-ink-2',                label: 'text-ink-3'     },
+  none:   { bg: 'bg-surface-2 border border-border',       text: 'text-ink-3',                label: 'text-ink-4'     },
+}
+
+function CycleBox({ variant, count, label }: { variant: CycleBoxVariant; count: number; label: string }) {
+  const s = BOX_STYLE[variant]
+  return (
+    <div className={`flex-1 rounded-btn px-4 py-3 flex flex-col gap-0.5 ${s.bg}`}>
+      <span className={`font-display text-[28px] font-bold leading-none tracking-[-0.02em] ${s.text}`}>{count}</span>
+      <span className={`text-[12.5px] font-medium ${s.label}`}>{label}</span>
+    </div>
+  )
+}
+
+/* ── Table columns ─────────────────────────────────────────── */
 
 const billColumns: Column<PropertyHubBill>[] = [
   {
@@ -62,186 +101,126 @@ const paymentColumns: Column<PropertyHubPayment>[] = [
   { key: 'receiptNo', header: 'Receipt #', cell: r => <span className="font-mono text-[12px] text-ink-3">{r.receiptNo}</span> },
 ]
 
+/* ── Page ──────────────────────────────────────────────────── */
+
 export function PropertyHub() {
   const navigate = useNavigate()
   const { property } = useOutletContext<PropertyLayoutContext>()
-  const { stats, cycle, info, recentBills, recentPayments } = MOCK_PROPERTY_HUB
+  const { stats, cycle, recentBills, recentPayments } = MOCK_PROPERTY_HUB
 
-  const cycleCountMap: Record<string, number> = {
-    paid: cycle.paid, posted: cycle.posted, drafts: cycle.drafts, overdue: cycle.overdue,
-  }
+  const totalBills  = cycle.paid + cycle.posted + cycle.drafts + cycle.overdue + cycle.notYetDrafted
+  const sentBills   = cycle.paid + cycle.posted + cycle.overdue
+  const sentPct     = totalBills > 0 ? Math.round((sentBills / totalBills) * 100) : 0
 
   return (
-    <div
-      className="grid grid-cols-[1fr_272px] max-[1100px]:grid-cols-1"
-      style={{ gap: 'var(--gap-grid)', alignItems: 'start' }}
-    >
-      {/* ── Left column ───────────────────────────────────── */}
-      <div className="flex flex-col min-w-0" style={{ gap: 'var(--gap-grid)' }}>
+    <div className="flex flex-col" style={{ gap: '20px' }}>
 
-        {/* Mini stat tiles */}
-        <div className="grid grid-cols-4 max-[900px]:grid-cols-2" style={{ gap: 'var(--gap-grid)' }}>
-          <StatTile
-            label="Rooms"
-            value={stats.rooms.total}
-            sub={`${stats.rooms.active} active · ${stats.rooms.maintenance} maint.`}
-          />
-          <StatTile
-            label="Occupied"
-            value={`${stats.occupied.count}/${stats.occupied.total}`}
-            sub={`${stats.occupied.vacantBeds} vacant beds`}
-          />
-          <StatTile
-            label="Active tenants"
-            value={stats.activeTenants}
-          />
-          <StatTile
-            label="Billed this mo."
-            value={
-              <>
-                <span className="text-ink-3 font-semibold mr-px">₱</span>
-                {fmtNum(stats.billedThisMonth.amountPHP)}
-              </>
-            }
-            delta={{ label: `${stats.billedThisMonth.collectedPct}% collected`, variant: 'up' }}
-          />
+      {/* ── Stat tiles ──────────────────────────────────────── */}
+      <div className="grid grid-cols-4 max-[900px]:grid-cols-2" style={{ gap: 'var(--gap-grid)' }}>
+        <Tile
+          label="Rooms"
+          value={stats.rooms.total}
+          sub={`${stats.rooms.active} active · ${stats.rooms.maintenance} maint.`}
+        />
+        <Tile
+          label="Occupied"
+          value={`${stats.occupied.count}/${stats.occupied.total}`}
+          sub={`${stats.occupied.vacantBeds} vacant beds`}
+        />
+        <Tile
+          label="Active Tenants"
+          value={stats.activeTenants}
+        />
+        <Tile
+          label="Billed This Mo."
+          value={<><span className="text-ink-3 font-semibold mr-0.5">₱</span>{fmtNum(stats.billedThisMonth.amountPHP)}</>}
+          bar={stats.billedThisMonth.collectedPct}
+          sub={<span className="text-success font-medium">{stats.billedThisMonth.collectedPct}% collected</span>}
+        />
+      </div>
+
+      {/* ── Drafts-ready callout ─────────────────────────────── */}
+      {cycle.draftsReadyToReview > 0 && (
+        <Callout
+          variant="warning"
+          icon={<AlertTriangle size={18} strokeWidth={1.75} />}
+          action={
+            <Button variant="default" size="sm" onClick={() => navigate(cycle.reviewDraftsUrl)}>
+              Review drafts <ArrowRight size={13} strokeWidth={1.75} />
+            </Button>
+          }
+        >
+          <strong className="font-semibold text-ink">{cycle.draftsReadyToReview} drafts ready to review.</strong>{' '}
+          Post them to send notices to tenants.
+        </Callout>
+      )}
+
+      {/* ── Current cycle card ───────────────────────────────── */}
+      <Card>
+        <CardHead
+          title={`Current cycle · ${cycle.label}`}
+          actions={
+            <Button variant="primary" size="sm" onClick={() => navigate(cycle.cycleUrl)}>
+              Open cycle <ArrowRight size={13} strokeWidth={1.75} />
+            </Button>
+          }
+        />
+
+        {/* 4 metric boxes */}
+        <div className="flex gap-2 mb-4">
+          <CycleBox variant="paid"   count={cycle.paid}          label="Paid"        />
+          <CycleBox variant="posted" count={cycle.posted}       label="Posted"      />
+          <CycleBox variant="draft"  count={cycle.drafts}       label="Draft"       />
+          <CycleBox variant="none"   count={cycle.notYetDrafted} label="Not drafted" />
         </div>
 
-        {/* Current cycle card */}
-        <Card>
+        {/* Progress bar */}
+        <div className="flex items-center gap-3 text-[12.5px] text-ink-3 mb-2">
+          <span>{sentBills} of {totalBills} bills sent</span>
+          <ProgressBar value={sentPct} className="flex-1" />
+          <span className="font-mono font-medium text-ink-2 tabular-nums">{sentPct}%</span>
+        </div>
+
+      </Card>
+
+      {/* ── Recent posted bills ──────────────────────────────── */}
+      <Card noPadding>
+        <div style={{ padding: 'var(--pad-card) var(--pad-card) 0' }}>
           <CardHead
-            title={`Current cycle · ${cycle.label}`}
-            subtitle={cycle.billingDayLabel}
+            title="Recent posted bills"
             actions={
-              <Button variant="ghost" size="sm" onClick={() => navigate(cycle.cycleUrl)}>
-                open cycle <ArrowRight size={13} strokeWidth={1.75} />
+              <Button variant="primary" size="sm" onClick={() => navigate('/landlord/billing')}>
+                Open Billing Center <ArrowRight size={13} strokeWidth={1.75} />
               </Button>
             }
           />
-          <ProgressBar value={cycle.progressPct} className="mb-3" />
+        </div>
+        <DataTable
+          columns={billColumns}
+          rows={recentBills}
+          getRowKey={r => r.billNo}
+        />
+      </Card>
 
-          {/* Status breakdown */}
-          <div className="flex items-center gap-3 flex-wrap mb-3">
-            {CYCLE_CHIPS.map(({ key, status }) => (
-              <span key={key} className="inline-flex items-center gap-1">
-                <span className="font-mono text-[12px] font-semibold text-ink">
-                  {cycleCountMap[key]}
-                </span>
-                <StatusBadge status={status} />
-              </span>
-            ))}
-            <span className="ml-auto font-mono text-[12px] text-ink-4">
-              {cycle.notYetDrafted} not yet drafted
-            </span>
-          </div>
-
-          {/* Drafts-ready callout */}
-          {cycle.draftsReadyToReview > 0 && (
-            <Callout
-              variant="warning"
-              icon={<AlertTriangle size={18} strokeWidth={1.75} />}
-              action={
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={() => navigate(cycle.reviewDraftsUrl)}
-                >
-                  review drafts <ArrowRight size={13} strokeWidth={1.75} />
-                </Button>
-              }
-            >
-              <strong className="font-semibold text-ink">
-                {cycle.draftsReadyToReview} drafts
-              </strong>{' '}
-              ready to review. Post them to send notices to tenants.
-            </Callout>
-          )}
-        </Card>
-
-        {/* Recent posted bills */}
-        <Card noPadding>
-          <div style={{ padding: 'var(--pad-card) var(--pad-card) 0' }}>
-            <CardHead
-              title="Recent posted bills"
-              actions={
-                <Button variant="ghost" size="sm" onClick={() => navigate('/landlord/billing')}>
-                  open Billing Center <ArrowRight size={13} strokeWidth={1.75} />
-                </Button>
-              }
-            />
-          </div>
-          <DataTable
-            columns={billColumns}
-            rows={recentBills}
-            getRowKey={r => r.billNo}
-          />
-        </Card>
-
-        {/* Recent payments */}
-        <Card noPadding>
-          <div style={{ padding: 'var(--pad-card) var(--pad-card) 0' }}>
-            <CardHead
-              title="Recent payments recorded"
-              actions={
-                <Button variant="ghost" size="sm" onClick={() => navigate('/landlord/payments')}>
-                  open Payments & Receipts <ArrowRight size={13} strokeWidth={1.75} />
-                </Button>
-              }
-            />
-          </div>
-          <DataTable
-            columns={paymentColumns}
-            rows={recentPayments}
-            getRowKey={r => r.receiptNo}
-          />
-        </Card>
-      </div>
-
-      {/* ── Right column ──────────────────────────────────── */}
-      <div className="flex flex-col" style={{ gap: 'var(--gap-grid)' }}>
-
-        {/* Property info */}
-        <Card>
-          <CardHead title="Property info" />
-          <dl className="flex flex-col gap-[10px]">
-            {[
-              { label: 'Name',        value: info.name },
-              { label: 'Address',     value: info.address },
-              { label: 'Billing day', value: String(info.billingDay) },
-              { label: 'Contact',     value: info.contact },
-              { label: 'Created',     value: info.createdAt },
-            ].map(({ label, value }) => (
-              <div key={label} className="flex items-baseline justify-between gap-3">
-                <dt className="text-[12.5px] text-ink-4 shrink-0">{label}</dt>
-                <dd className="text-[12.5px] font-medium text-ink-2 text-right">{value}</dd>
-              </div>
-            ))}
-          </dl>
-        </Card>
-
-        {/* Quick actions */}
-        <Card>
-          <CardHead title="Quick actions" />
-          <div className="flex flex-col gap-2">
-            {[
-              { icon: <DoorOpen size={14} strokeWidth={1.75} />, label: 'Add room',              href: `/landlord/properties/${property.id}/rooms` },
-              { icon: <UserPlus size={14} strokeWidth={1.75} />, label: 'Add tenant',            href: `/landlord/tenants/new?property=${property.id}` },
-              { icon: <Tag      size={14} strokeWidth={1.75} />, label: 'Add charge',            href: `/landlord/properties/${property.id}/charges` },
-              { icon: <Send     size={14} strokeWidth={1.75} />, label: 'Send all bill notices', href: '#' },
-            ].map(({ icon, label, href }) => (
-              <Button
-                key={label}
-                variant="default"
-                className="w-full justify-start"
-                onClick={() => { if (href !== '#') navigate(href) }}
-              >
-                {icon}
-                {label}
+      {/* ── Recent payments ──────────────────────────────────── */}
+      <Card noPadding>
+        <div style={{ padding: 'var(--pad-card) var(--pad-card) 0' }}>
+          <CardHead
+            title="Recent payments recorded"
+            actions={
+              <Button variant="primary" size="sm" onClick={() => navigate('/landlord/payments')}>
+                Open Payments & Receipts <ArrowRight size={13} strokeWidth={1.75} />
               </Button>
-            ))}
-          </div>
-        </Card>
-      </div>
+            }
+          />
+        </div>
+        <DataTable
+          columns={paymentColumns}
+          rows={recentPayments}
+          getRowKey={r => r.receiptNo}
+        />
+      </Card>
+
     </div>
   )
 }

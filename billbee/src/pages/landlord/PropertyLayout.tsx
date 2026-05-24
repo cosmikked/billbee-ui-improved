@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import { useParams, useNavigate, Outlet } from 'react-router-dom'
 import { Pencil, Archive, Plus } from 'lucide-react'
 import { MOCK_PROPERTIES, MOCK_PROPERTY_HUB } from '../../data/mock'
+import { EditPropertyDrawer } from './EditPropertyDrawer'
 import { PageHead } from '../../components/ui/PageHead'
 import { Button } from '../../components/ui/Button'
 import { StatusBadge } from '../../components/ui/StatusBadge'
@@ -15,7 +17,10 @@ export function PropertyLayout() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
 
-  const property = MOCK_PROPERTIES.find(p => p.id === id) ?? MOCK_PROPERTIES[0]
+  const [property, setProperty] = useState<Property>(
+    MOCK_PROPERTIES.find(p => p.id === id) ?? MOCK_PROPERTIES[0],
+  )
+  const [editOpen, setEditOpen] = useState(false)
   const { cycle, nextBillingIn } = MOCK_PROPERTY_HUB
 
   const tabs = [
@@ -41,7 +46,7 @@ export function PropertyLayout() {
         subtitle={`Billing day every ${property.billingDay}th · Next in ${nextBillingIn} days`}
         actions={
           <>
-            <Button variant="default">
+            <Button variant="default" onClick={() => setEditOpen(true)}>
               <Pencil size={13} strokeWidth={1.75} />
               Edit property
             </Button>
@@ -62,6 +67,12 @@ export function PropertyLayout() {
 
       {/* Tab content */}
       <Outlet context={{ property } satisfies PropertyLayoutContext} />
+
+      <EditPropertyDrawer
+        property={editOpen ? property : null}
+        onClose={() => setEditOpen(false)}
+        onSave={updated => { setProperty(updated); setEditOpen(false) }}
+      />
     </main>
   )
 }
