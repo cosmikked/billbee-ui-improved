@@ -153,21 +153,11 @@ function BasicsTab({ room }: { room: Room }) {
             <label className="block text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-3 mb-1.5">
               Status <span className="text-danger">*</span>
             </label>
-            <div className="flex rounded-btn border border-border overflow-hidden w-fit">
-              {(['active', 'inactive', 'maintenance'] as const).map(s => (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => setStatus(s)}
-                  className={[
-                    'px-4 py-2 text-[13px] font-medium capitalize transition-colors',
-                    status === s ? 'bg-ink text-bg' : 'bg-surface text-ink-3 hover:bg-surface-2',
-                  ].join(' ')}
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
+            <SegmentedControl
+              options={['Active', 'Inactive', 'Maintenance']}
+              value={status === 'active' ? 'Active' : status === 'inactive' ? 'Inactive' : 'Maintenance'}
+              onChange={v => setStatus(v === 'Active' ? 'active' : v === 'Inactive' ? 'inactive' : 'maintenance')}
+            />
           </div>
 
           <div>

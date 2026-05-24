@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { MOCK_PROPERTIES } from '../../data/mock'
 import type { RentMode, RoomStatus } from '../../types/rooms'
+// RoomStatus kept for the status state type
 import { Drawer } from '../../components/ui/Drawer'
 import { Button } from '../../components/ui/Button'
 import { SegmentedControl } from '../../components/ui/SegmentedControl'
@@ -41,34 +42,6 @@ function Field({
       </label>
       {children}
       {hint && <p className="text-[11.5px] text-ink-4">{hint}</p>}
-    </div>
-  )
-}
-
-/* ── Status toggle ─────────────────────────────────────────── */
-
-const STATUSES: { value: RoomStatus; label: string }[] = [
-  { value: 'active',      label: 'Active'      },
-  { value: 'inactive',    label: 'Inactive'    },
-  { value: 'maintenance', label: 'Maintenance' },
-]
-
-function StatusToggle({ value, onChange }: { value: RoomStatus; onChange: (v: RoomStatus) => void }) {
-  return (
-    <div className="flex rounded-btn border border-border overflow-hidden w-fit">
-      {STATUSES.map(s => (
-        <button
-          key={s.value}
-          type="button"
-          onClick={() => onChange(s.value)}
-          className={[
-            'px-4 py-2 text-[13px] font-medium transition-colors',
-            value === s.value ? 'bg-ink text-bg' : 'bg-surface text-ink-3 hover:bg-surface-2',
-          ].join(' ')}
-        >
-          {s.label}
-        </button>
-      ))}
     </div>
   )
 }
@@ -179,7 +152,11 @@ export function AddRoomDrawer({ open, onClose }: AddRoomDrawerProps) {
         </Field>
 
         <Field label="Status" required>
-          <StatusToggle value={status} onChange={setStatus} />
+          <SegmentedControl
+            options={['Active', 'Inactive', 'Maintenance']}
+            value={status === 'active' ? 'Active' : status === 'inactive' ? 'Inactive' : 'Maintenance'}
+            onChange={v => setStatus(v === 'Active' ? 'active' : v === 'Inactive' ? 'inactive' : 'maintenance')}
+          />
         </Field>
 
         <Field label="Notes">

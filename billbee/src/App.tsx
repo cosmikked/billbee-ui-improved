@@ -2,7 +2,11 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { LandlordLayout } from './layouts/LandlordLayout'
 import { Dashboard } from './pages/landlord/Dashboard'
 import { Properties } from './pages/landlord/Properties'
+import { PropertyLayout } from './pages/landlord/PropertyLayout'
 import { PropertyHub } from './pages/landlord/PropertyHub'
+import { PropertyCharges } from './pages/landlord/PropertyCharges'
+import { PropertyRooms } from './pages/landlord/PropertyRooms'
+import { PropertyTenants } from './pages/landlord/PropertyTenants'
 import { Charges } from './pages/landlord/Charges'
 import { Rooms } from './pages/landlord/Rooms'
 import { Tenants } from './pages/landlord/Tenants'
@@ -23,8 +27,13 @@ export default function App() {
         <Route path="/" element={<Navigate to="/landlord/dashboard" replace />} />
         <Route path="/landlord" element={<LandlordLayout />}>
           <Route path="dashboard"   element={<Dashboard />} />
-          <Route path="properties"     element={<Properties />} />
-          <Route path="properties/:id" element={<PropertyHub />} />
+          <Route path="properties"          element={<Properties />} />
+          <Route path="properties/:id"      element={<PropertyLayout />}>
+            <Route index                    element={<PropertyHub />} />
+            <Route path="charges"           element={<PropertyCharges />} />
+            <Route path="rooms"             element={<PropertyRooms />} />
+            <Route path="tenants"           element={<PropertyTenants />} />
+          </Route>
           <Route path="charges"        element={<Charges />} />
           <Route path="rooms"          element={<Rooms />} />
           <Route path="rooms/:id"      element={<RoomDetail />} />
