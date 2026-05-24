@@ -4,7 +4,7 @@ export type BadgeStatus    = BillStatus | PropertyStatus
 
 const STATUS: Record<BadgeStatus, { label: string; classes: string }> = {
   draft:    { label: 'Draft',         classes: 'bg-surface-2 text-ink-3 border-border' },
-  posted:   { label: 'Posted',        classes: 'bg-info-soft text-info border-info-soft' },
+  posted:   { label: 'Posted',        classes: 'bg-accent-soft text-accent-2 border-accent-soft' },
   partial:  { label: 'Partial',       classes: 'bg-warning-soft text-warning border-warning-soft' },
   paid:     { label: 'Paid',          classes: 'bg-success-soft text-success border-success-soft' },
   overdue:  { label: 'Overdue',       classes: 'bg-danger-soft text-danger border-danger-soft' },

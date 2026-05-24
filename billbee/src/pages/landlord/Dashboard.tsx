@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { Search, Plus } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { MOCK_DASHBOARD } from '../../data/mock'
 import { PageHead } from '../../components/ui/PageHead'
 import { Button } from '../../components/ui/Button'
@@ -27,16 +27,10 @@ export function Dashboard() {
         title={greeting}
         subtitle={subtitle}
         actions={
-          <>
-            <Button variant="default">
-              <Search size={14} strokeWidth={1.75} />
-              Search
-            </Button>
-            <Button variant="accent" onClick={() => navigate('/landlord/billing/generate')}>
-              <Plus size={14} strokeWidth={2} />
-              Generate Bills
-            </Button>
-          </>
+          <Button variant="accent" onClick={() => navigate('/landlord/billing/generate')}>
+            <Plus size={14} strokeWidth={2} />
+            Generate Bills
+          </Button>
         }
       />
 

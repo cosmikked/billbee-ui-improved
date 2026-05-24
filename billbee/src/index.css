@@ -43,6 +43,35 @@
   --radius-pill: 9999px; /* avatars, status badges, notification dots */
 }
 
+/* Dark mode overrides — html[data-theme="dark"] wins over :root from @theme */
+html[data-theme="dark"] {
+  --color-bg:            #191510;
+  --color-surface:       #221D14;
+  --color-surface-2:     #2C2619;
+  --color-border:        #3C3428;
+  --color-border-strong: #524A3A;
+  --color-border-subtle: #272119;
+
+  --color-ink:   #F0EBE1;
+  --color-ink-2: #C2BAB0;
+  --color-ink-3: #857D72;
+  --color-ink-4: #504840;
+
+  --color-accent:      #F0A83A;
+  --color-accent-2:    #D4891E;
+  --color-accent-soft: #31230E;
+  --color-accent-tint: #261B0A;
+
+  --color-success:      #52C27A;
+  --color-success-soft: #142B1D;
+  --color-warning:      #D9A81C;
+  --color-warning-soft: #2A2108;
+  --color-danger:       #E8534A;
+  --color-danger-soft:  #2E0F0C;
+  --color-info:         #5B95F0;
+  --color-info-soft:    #0D1D3D;
+}
+
 /* Density-controlled spacing — not in @theme so they stay as plain CSS vars */
 :root {
   --pad-card: 20px;
@@ -79,8 +108,8 @@
   }
 
   body {
-    background: #FBFAF6;
-    color: #1A1816;
+    background: var(--color-bg);
+    color: var(--color-ink);
     font-family: "Inter", system-ui, sans-serif;
     font-size: 14px;
     line-height: 1.45;

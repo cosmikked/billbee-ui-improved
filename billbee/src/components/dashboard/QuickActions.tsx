@@ -35,7 +35,7 @@ const ACTIONS: Action[] = [
     icon: Building2,
     label: 'Add property',
     sub: 'set up a new building',
-    href: '/landlord/properties/new',
+    href: '/landlord/properties',
   },
   {
     icon: TrendingUp,
@@ -57,7 +57,9 @@ export function QuickActions() {
         {ACTIONS.map(({ icon: Icon, label, sub, href, primary }) => (
           <button
             key={href}
-            onClick={() => navigate(href)}
+            onClick={() =>
+              navigate(href, href === '/landlord/properties' ? { state: { openCreate: true } } : undefined)
+            }
             className={[
               'flex items-center gap-3 px-[14px] py-3 rounded-btn text-left border transition-ui',
               primary

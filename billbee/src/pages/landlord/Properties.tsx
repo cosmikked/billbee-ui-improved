@@ -1,9 +1,11 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useRef, useEffect } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import {
   Search, Plus, Download, ArrowRight,
-  Building2, MoreHorizontal, Info, ChevronDown,
+  MoreHorizontal, Info, ChevronDown, Pencil, Trash2,
 } from 'lucide-react'
+import { CreatePropertyDrawer } from './CreatePropertyDrawer'
+import { EditPropertyDrawer } from './EditPropertyDrawer'
 import { MOCK_PROPERTIES } from '../../data/mock'
 import type { Property } from '../../types/properties'
 import { PageHead } from '../../components/ui/PageHead'
@@ -12,6 +14,7 @@ import { IconButton } from '../../components/ui/IconButton'
 import { Card } from '../../components/ui/Card'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { Callout } from '../../components/ui/Callout'
+import { Modal } from '../../components/ui/Modal'
 
 function fmtPHP(n: number) {
   if (n >= 1000) return `₱${Math.round(n / 1000)}k`
@@ -20,25 +23,79 @@ function fmtPHP(n: number) {
 
 type StatusFilter = 'any' | 'active' | 'inactive'
 
+/* ── Card overflow menu ────────────────────────────────────── */
+
+function CardMenu({
+  onEdit,
+  onDelete,
+}: {
+  onEdit: () => void
+  onDelete: () => void
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    function onPointerDown(e: PointerEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('pointerdown', onPointerDown)
+    return () => document.removeEventListener('pointerdown', onPointerDown)
+  }, [open])
+
+  return (
+    <div ref={ref} className="relative">
+      <IconButton
+        aria-label="More options"
+        onClick={e => { e.stopPropagation(); setOpen(o => !o) }}
+      >
+        <MoreHorizontal size={15} strokeWidth={1.75} />
+      </IconButton>
+
+      {open && (
+        <div className="absolute right-0 top-[calc(100%+4px)] z-50 bg-surface border border-border rounded-card shadow-lg py-1 w-36 flex flex-col">
+          <button
+            className="flex items-center gap-2.5 px-3 py-2 text-[13px] text-ink hover:bg-surface-2 transition-colors text-left"
+            onClick={e => { e.stopPropagation(); setOpen(false); onEdit() }}
+          >
+            <Pencil size={13} strokeWidth={1.75} className="text-ink-3" />
+            Edit
+          </button>
+          <button
+            className="flex items-center gap-2.5 px-3 py-2 text-[13px] text-danger hover:bg-danger-soft transition-colors text-left"
+            onClick={e => { e.stopPropagation(); setOpen(false); onDelete() }}
+          >
+            <Trash2 size={13} strokeWidth={1.75} />
+            Delete
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 /* ── Property card ─────────────────────────────────────────── */
+
 interface PropertyCardProps {
   property: Property
   onOpen: () => void
+  onEdit: () => void
+  onDelete: () => void
 }
 
-function PropertyCard({ property, onOpen }: PropertyCardProps) {
+function PropertyCard({ property, onOpen, onEdit, onDelete }: PropertyCardProps) {
   const stats = [
-    { label: 'rooms',    value: String(property.totalRooms) },
-    { label: 'occupied', value: `${property.occupiedRooms}/${property.totalRooms}` },
-    { label: 'this mo.', value: property.collectedThisMonthPHP != null ? fmtPHP(property.collectedThisMonthPHP) : '—' },
+    { label: 'rooms',      value: String(property.totalRooms) },
+    { label: 'occupied',   value: `${property.occupiedRooms}/${property.totalRooms}` },
+    { label: 'this month', value: property.collectedThisMonthPHP != null ? fmtPHP(property.collectedThisMonthPHP) : '—' },
   ]
 
   return (
     <Card hover>
-      {/* Status badges + billing day */}
+      {/* Status badge + billing day */}
       <div className="flex items-center gap-1.5 mb-3 flex-wrap">
         <StatusBadge status={property.status} />
-        {property.readyToBill && <StatusBadge status="ready" />}
         <span className="ml-auto font-mono text-[11.5px] text-ink-4">
           day {property.billingDay}
         </span>
@@ -50,22 +107,16 @@ function PropertyCard({ property, onOpen }: PropertyCardProps) {
       </h3>
       <p className="text-[13px] text-ink-3 mb-4">{property.address}</p>
 
-      {/* Building illustration placeholder */}
-      <div
-        className="bg-surface-2 rounded-chip flex items-center justify-center mb-4"
-        style={{ height: '76px' }}
-      >
-        <Building2 size={32} strokeWidth={1.25} className="text-border-strong" />
-      </div>
-
       {/* Mini stats */}
       <div className="grid grid-cols-3 gap-2 mb-4">
         {stats.map(({ label, value }) => (
-          <div key={label}>
-            <div className="text-[11px] font-medium text-ink-4 uppercase tracking-[0.05em] mb-0.5">
+          <div key={label} className="bg-surface-2/60 rounded-chip px-3 py-2.5">
+            <div className="font-mono text-[17px] font-medium text-ink-2 leading-none mb-1">
+              {value}
+            </div>
+            <div className="text-[11px] font-medium text-ink-4 uppercase tracking-[0.05em]">
               {label}
             </div>
-            <div className="font-mono text-[13px] font-medium text-ink-2">{value}</div>
           </div>
         ))}
       </div>
@@ -75,51 +126,60 @@ function PropertyCard({ property, onOpen }: PropertyCardProps) {
         <Button variant="primary" className="flex-1" onClick={onOpen}>
           Open <ArrowRight size={13} strokeWidth={1.75} />
         </Button>
-        <IconButton
-          onClick={e => e.stopPropagation()}
-          aria-label="More options"
-        >
-          <MoreHorizontal size={15} strokeWidth={1.75} />
-        </IconButton>
+        <CardMenu onEdit={onEdit} onDelete={onDelete} />
       </div>
     </Card>
   )
 }
 
 /* ── Page ──────────────────────────────────────────────────── */
+
 export function Properties() {
   const navigate = useNavigate()
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('any')
-  const [search, setSearch] = useState('')
+  const location = useLocation()
 
-  const filtered = MOCK_PROPERTIES.filter(p => {
+  const [properties,    setProperties]   = useState<Property[]>(MOCK_PROPERTIES)
+  const [statusFilter,  setStatusFilter] = useState<StatusFilter>('any')
+  const [search,        setSearch]       = useState('')
+  const [createOpen,    setCreateOpen]   = useState(
+    (location.state as { openCreate?: boolean } | null)?.openCreate === true
+  )
+  const [editTarget,    setEditTarget]   = useState<Property | null>(null)
+  const [deleteTarget,  setDeleteTarget] = useState<Property | null>(null)
+
+  const filtered = properties.filter(p => {
     const matchesStatus = statusFilter === 'any' || p.status === statusFilter
     const q = search.trim().toLowerCase()
-    const matchesSearch =
-      !q ||
-      p.name.toLowerCase().includes(q) ||
-      p.address.toLowerCase().includes(q)
+    const matchesSearch = !q || p.name.toLowerCase().includes(q) || p.address.toLowerCase().includes(q)
     return matchesStatus && matchesSearch
   })
 
-  const activeCount   = MOCK_PROPERTIES.filter(p => p.status === 'active').length
-  const inactiveCount = MOCK_PROPERTIES.filter(p => p.status === 'inactive').length
+  const activeCount   = properties.filter(p => p.status === 'active').length
+  const inactiveCount = properties.filter(p => p.status === 'inactive').length
+
+  function handleSave(updated: Property) {
+    setProperties(prev => prev.map(p => p.id === updated.id ? updated : p))
+    setEditTarget(null)
+  }
+
+  function handleDelete() {
+    if (!deleteTarget) return
+    setProperties(prev => prev.filter(p => p.id !== deleteTarget.id))
+    setDeleteTarget(null)
+  }
 
   return (
-    <main className="px-8 pt-7 pb-16 max-w-[1320px] mx-auto w-full">
+    <main className="px-8 pt-4 pb-16 max-w-[1320px] mx-auto w-full">
       <PageHead
         title="Properties"
-        subtitle={`${MOCK_PROPERTIES.length} properties · ${activeCount} active · ${inactiveCount} inactive`}
+        subtitle={`${properties.length} properties · ${activeCount} active · ${inactiveCount} inactive`}
         actions={
           <>
             <Button variant="default">
               <Download size={14} strokeWidth={1.75} />
               Export
             </Button>
-            <Button
-              variant="accent"
-              onClick={() => navigate('/landlord/properties/new')}
-            >
+            <Button variant="accent" onClick={() => setCreateOpen(true)}>
               <Plus size={14} strokeWidth={2} />
               Create Property
             </Button>
@@ -129,12 +189,10 @@ export function Properties() {
 
       {/* Search + filter bar */}
       <div className="flex items-center gap-3 mb-6 flex-wrap">
-        {/* Search input */}
         <div className="relative">
           <Search
             className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-ink-4"
-            size={14}
-            strokeWidth={1.75}
+            size={14} strokeWidth={1.75}
           />
           <input
             value={search}
@@ -144,7 +202,6 @@ export function Properties() {
           />
         </div>
 
-        {/* Status filter */}
         <div className="relative">
           <select
             value={statusFilter}
@@ -157,12 +214,10 @@ export function Properties() {
           </select>
           <ChevronDown
             className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-ink-3"
-            size={13}
-            strokeWidth={1.75}
+            size={13} strokeWidth={1.75}
           />
         </div>
 
-        {/* Results count */}
         <span className="ml-auto text-[13px] text-ink-3 tabular-nums">
           {filtered.length} {filtered.length === 1 ? 'result' : 'results'}
         </span>
@@ -178,12 +233,14 @@ export function Properties() {
             key={p.id}
             property={p}
             onOpen={() => navigate(`/landlord/properties/${p.id}`)}
+            onEdit={() => setEditTarget(p)}
+            onDelete={() => setDeleteTarget(p)}
           />
         ))}
 
         {/* Ghost "create new" card */}
         <button
-          onClick={() => navigate('/landlord/properties/new')}
+          onClick={() => setCreateOpen(true)}
           className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-border rounded-card text-ink-4 hover:border-border-strong hover:text-ink-3 hover:bg-surface-2 transition-ui"
           style={{ padding: 'var(--pad-card)', minHeight: '280px' }}
         >
@@ -201,6 +258,40 @@ export function Properties() {
         <strong className="font-semibold text-ink-2">Property Hub</strong>{' '}
         — that's where you set up its charges, rooms, and tenants.
       </Callout>
+
+      {/* Create drawer */}
+      <CreatePropertyDrawer
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+      />
+
+      {/* Edit drawer */}
+      <EditPropertyDrawer
+        property={editTarget}
+        onClose={() => setEditTarget(null)}
+        onSave={handleSave}
+      />
+
+      {/* Delete confirmation modal */}
+      <Modal
+        open={deleteTarget !== null}
+        onClose={() => setDeleteTarget(null)}
+        title="Delete property"
+        subtitle={deleteTarget?.name}
+        width={420}
+        footer={
+          <div className="flex gap-2 justify-end">
+            <Button variant="default" onClick={() => setDeleteTarget(null)}>Cancel</Button>
+            <Button variant="accent" onClick={handleDelete}>Delete</Button>
+          </div>
+        }
+      >
+        <p className="text-[13.5px] text-ink-2 leading-relaxed">
+          You cannot delete{' '}
+          <strong className="text-ink font-semibold">{deleteTarget?.name}</strong> 
+          &nbsp;because it has existing active tenants.
+        </p>
+      </Modal>
     </main>
   )
 }

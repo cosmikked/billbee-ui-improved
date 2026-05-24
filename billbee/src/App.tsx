@@ -5,6 +5,16 @@ import { Properties } from './pages/landlord/Properties'
 import { PropertyHub } from './pages/landlord/PropertyHub'
 import { Charges } from './pages/landlord/Charges'
 import { Rooms } from './pages/landlord/Rooms'
+import { Tenants } from './pages/landlord/Tenants'
+import { TenantDetail } from './pages/landlord/TenantDetail'
+import { BillingCenter } from './pages/landlord/BillingCenter'
+import { CycleDetail } from './pages/landlord/CycleDetail'
+import { GenerateBills } from './pages/landlord/GenerateBills'
+import { DraftBill } from './pages/landlord/DraftBill'
+import { PostedBill } from './pages/landlord/PostedBill'
+import { PaymentsReceipts } from './pages/landlord/PaymentsReceipts'
+import { Reports } from './pages/landlord/Reports'
+import { RoomDetail } from './pages/landlord/RoomDetail'
 
 export default function App() {
   return (
@@ -17,6 +27,16 @@ export default function App() {
           <Route path="properties/:id" element={<PropertyHub />} />
           <Route path="charges"        element={<Charges />} />
           <Route path="rooms"          element={<Rooms />} />
+          <Route path="rooms/:id"      element={<RoomDetail />} />
+          <Route path="tenants"        element={<Tenants />} />
+          <Route path="tenants/:id"    element={<TenantDetail />} />
+          <Route path="billing"                        element={<BillingCenter />} />
+          <Route path="billing/cycle/:id"            element={<CycleDetail />} />
+          <Route path="billing/generate"             element={<GenerateBills />} />
+          <Route path="billing/draft/:id"           element={<DraftBill />} />
+          <Route path="billing/posted/:id"          element={<PostedBill />} />
+          <Route path="payments"                    element={<PaymentsReceipts />} />
+          <Route path="reports"                     element={<Reports />} />
           {/* Stub routes — pages not yet implemented */}
           <Route path="*" element={<ComingSoon />} />
         </Route>

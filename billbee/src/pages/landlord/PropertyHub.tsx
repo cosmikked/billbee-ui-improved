@@ -13,7 +13,6 @@ import { ProgressBar } from '../../components/ui/ProgressBar'
 import { TabNav } from '../../components/ui/TabNav'
 import { DataTable } from '../../components/ui/DataTable'
 import { Callout } from '../../components/ui/Callout'
-import { Pill } from '../../components/ui/Pill'
 import type { Column } from '../../components/ui/DataTable'
 import type { BillStatus } from '../../components/ui/StatusBadge'
 import type { PropertyHubBill, PropertyHubPayment } from '../../types/properties'
@@ -84,15 +83,7 @@ export function PropertyHub() {
   ]
 
   return (
-    <main className="px-8 pt-7 pb-16 max-w-[1320px] mx-auto w-full">
-      {/* Breadcrumb */}
-      <nav className="flex items-center gap-1.5 text-[12.5px] text-ink-4 mb-4">
-        <Link to="/landlord/properties" className="hover:text-ink-2 transition-ui">
-          properties
-        </Link>
-        <span>·</span>
-        <span className="text-ink-3">{property.name.toLowerCase()}</span>
-      </nav>
+    <main className="px-8 pt-4 pb-16 max-w-[1320px] mx-auto w-full">
 
       {/* Page head */}
       <PageHead
@@ -101,7 +92,6 @@ export function PropertyHub() {
           <span className="inline-flex items-center gap-2 flex-wrap leading-normal">
             {property.name}
             <StatusBadge status={property.status} />
-            {property.readyToBill && <StatusBadge status="ready" />}
           </span>
         }
         subtitle={`${property.address} · billing day every ${property.billingDay}th · next in ${nextBillingIn} days`}

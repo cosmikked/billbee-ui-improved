@@ -1,15 +1,17 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import {
   Plus, Info, AlertTriangle,
-  ChevronDown, MoreHorizontal, Search, SquarePen,
+  ChevronDown, Search, SquarePen, Trash2,
 } from 'lucide-react'
 import { MOCK_CHARGES, MOCK_PROPERTIES } from '../../data/mock'
+import { AddChargeDrawer } from './AddChargeDrawer'
+import { EditChargeDrawer } from './EditChargeDrawer'
 import type { Charge, ChargeType, ChargeScope } from '../../types/charges'
 import { PageHead } from '../../components/ui/PageHead'
 import { Button } from '../../components/ui/Button'
 import { IconButton } from '../../components/ui/IconButton'
 import { Card } from '../../components/ui/Card'
+import { Modal } from '../../components/ui/Modal'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { Pill } from '../../components/ui/Pill'
 import { DataTable } from '../../components/ui/DataTable'
@@ -53,17 +55,30 @@ const SEL = [
 /* ── Page ──────────────────────────────────────────────────── */
 
 export function Charges() {
-  const navigate = useNavigate()
+  const [charges,        setCharges]        = useState<Charge[]>(MOCK_CHARGES)
   const [search,         setSearch]         = useState('')
   const [propertyFilter, setPropertyFilter] = useState('any')
   const [categoryFilter, setCategoryFilter] = useState('any')
   const [typeFilter,     setTypeFilter]     = useState<TypeFilterVal>('any')
   const [scopeFilter,    setScopeFilter]    = useState<ScopeFilterVal>('any')
   const [statusFilter,   setStatusFilter]   = useState<StatusFilter>('active')
+  const [drawerOpen,     setDrawerOpen]     = useState(false)
+  const [editTarget,     setEditTarget]     = useState<Charge | null>(null)
+  const [deleteTarget,   setDeleteTarget]   = useState<Charge | null>(null)
 
-  const categories = Array.from(new Set(MOCK_CHARGES.map(c => c.category))).sort()
+  function handleSave(updated: Charge) {
+    setCharges(prev => prev.map(c => c.id === updated.id ? updated : c))
+  }
 
-  const filtered = MOCK_CHARGES.filter(c => {
+  function handleDelete() {
+    if (!deleteTarget) return
+    setCharges(prev => prev.filter(c => c.id !== deleteTarget.id))
+    setDeleteTarget(null)
+  }
+
+  const categories = Array.from(new Set(charges.map(c => c.category))).sort()
+
+  const filtered = charges.filter(c => {
     if (propertyFilter !== 'any' && c.propertyId !== propertyFilter) return false
     if (statusFilter   !== 'any' && c.status      !== statusFilter)   return false
     if (categoryFilter !== 'any' && c.category    !== categoryFilter) return false
@@ -117,13 +132,17 @@ export function Charges() {
       cell: r => (
         <div className="flex items-center gap-1 justify-end">
           <IconButton
-            onClick={e => { e.stopPropagation(); navigate(`/landlord/charges/${r.id}/edit`) }}
+            onClick={e => { e.stopPropagation(); setEditTarget(r) }}
             aria-label="Edit charge"
           >
             <SquarePen size={14} strokeWidth={1.75} />
           </IconButton>
-          <IconButton onClick={e => e.stopPropagation()} aria-label="More options">
-            <MoreHorizontal size={14} strokeWidth={1.75} />
+          <IconButton
+            onClick={e => { e.stopPropagation(); setDeleteTarget(r) }}
+            aria-label="Delete charge"
+            className="text-danger hover:text-danger"
+          >
+            <Trash2 size={14} strokeWidth={1.75} />
           </IconButton>
         </div>
       ),
@@ -131,7 +150,7 @@ export function Charges() {
   ]
 
   return (
-    <main className="px-8 pt-7 pb-16 max-w-[1320px] mx-auto w-full">
+    <main className="px-8 pt-4 pb-16 max-w-[1320px] mx-auto w-full">
       <PageHead
         title="Charge Catalog"
         subtitle="defines what can be billed — creating a charge does not bill tenants"
@@ -155,7 +174,7 @@ export function Charges() {
               />
             </div>
 
-            <Button variant="accent" onClick={() => navigate('/landlord/charges/new')}>
+            <Button variant="accent" onClick={() => setDrawerOpen(true)}>
               <Plus size={14} strokeWidth={2} />
               Add Charge
             </Button>
@@ -265,6 +284,33 @@ export function Charges() {
           </ul>
         </div>
       </Callout>
+
+      <AddChargeDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
+
+      <EditChargeDrawer
+        charge={editTarget}
+        onClose={() => setEditTarget(null)}
+        onSave={handleSave}
+      />
+
+      {/* Delete confirmation modal */}
+      {deleteTarget && (
+        <Modal
+          title="Delete charge"
+          subtitle={`"${deleteTarget.name}" will be permanently removed from the catalog.`}
+          onClose={() => setDeleteTarget(null)}
+          footer={
+            <div className="flex gap-2 justify-end">
+              <Button variant="default" onClick={() => setDeleteTarget(null)}>Cancel</Button>
+              <Button variant="accent" onClick={handleDelete}>Delete</Button>
+            </div>
+          }
+        >
+          <Callout variant="warning" icon={<AlertTriangle size={16} strokeWidth={1.75} />}>
+            This charge will be removed from all rooms and tenants it is currently attached to. Posted bills are not affected.
+          </Callout>
+        </Modal>
+      )}
     </main>
   )
 }

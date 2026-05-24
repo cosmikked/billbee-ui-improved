@@ -2,6 +2,8 @@ import type { DashboardProps } from '../types/dashboard'
 import type { Property, PropertyHubData } from '../types/properties'
 import type { Charge } from '../types/charges'
 import type { Room } from '../types/rooms'
+import type { Tenant } from '../types/tenants'
+import type { BillingCenterData, CycleDetailData } from '../types/billing'
 
 export const MOCK_DASHBOARD: DashboardProps = {
   user: {
@@ -247,7 +249,102 @@ export const MOCK_ROOMS: Room[] = [
   },
 ]
 
-/* Extended series for range toggle — 12 months ending Mar 2026 */
+/* Tenants */
+export const MOCK_TENANTS: Tenant[] = [
+  { id: 't-001', name: 'Joseph Cruz',  propertyName: 'Sunset', roomCode: 'A-101', phone: '0917-555-0011', email: 'jcruz@mail.com',  moveInLabel: 'Jan 2024', status: 'active' },
+  { id: 't-002', name: 'Rico Lim',     propertyName: 'Sunset', roomCode: 'A-101', phone: '0917-555-0099', email: 'rico@mail.com',   moveInLabel: 'Oct 2024', status: 'active' },
+  { id: 't-003', name: 'Ana Tan',      propertyName: 'Sunset', roomCode: 'A-102', phone: '0917-555-0034', email: null,              moveInLabel: 'Mar 2025', status: 'active' },
+  { id: 't-004', name: 'Maria Reyes',  propertyName: 'Sunset', roomCode: null,    phone: '0917-555-0088', email: 'maria@mail.com',  moveInLabel: 'Feb 2023', moveOutLabel: 'Mar 1, 2026', status: 'moved' },
+  { id: 't-005', name: 'Diego Cruz',   propertyName: 'Sunset', roomCode: 'A-104', phone: '0917-555-0210', email: 'diego@mail.com',  moveInLabel: 'Jul 2024', status: 'active' },
+  { id: 't-006', name: 'Liza Yu',      propertyName: 'Sunset', roomCode: 'A-104', phone: '0917-555-0444', email: 'liza@mail.com',   moveInLabel: 'Aug 2025', status: 'active' },
+  { id: 't-007', name: 'Bryan So',     propertyName: 'Sunset', roomCode: 'B-201', phone: '0917-555-0501', email: 'bryan@mail.com',  moveInLabel: 'Dec 2024', status: 'active' },
+  { id: 't-008', name: 'Carla Mendez', propertyName: 'Sunset', roomCode: 'B-203', phone: '0917-555-0622', email: null,              moveInLabel: 'Nov 2024', status: 'active' },
+  { id: 't-009', name: 'Patrick Reyes',propertyName: 'Sunset', roomCode: 'B-203', phone: '0917-555-0911', email: 'pat@mail.com',    moveInLabel: 'Jan 2025', status: 'active' },
+  { id: 't-010', name: 'Erika Ong',    propertyName: 'Sunset', roomCode: 'B-204', phone: '0917-555-0701', email: 'erika@mail.com',  moveInLabel: 'Sep 2024', status: 'active' },
+]
+
+/* Billing center */
+export const MOCK_BILLING_CENTER: BillingCenterData = {
+  months: [
+    { id: '2025-10', label: "Oct '25", state: 'closed' },
+    { id: '2025-11', label: "Nov '25", state: 'closed' },
+    { id: '2025-12', label: "Dec '25", state: 'closed' },
+    { id: '2026-01', label: "Jan '26", state: 'closed' },
+    { id: '2026-02', label: "Feb '26", state: 'closed' },
+    { id: '2026-03', label: "Mar '26", state: 'current' },
+    { id: '2026-04', label: "Apr '26", state: 'future' },
+  ],
+  currentMonthLabel: 'March 2026',
+  cycles: [
+    {
+      id: 'sunset-mar-2026',
+      propertyName: 'Sunset Apartments',
+      billingDay: 15,
+      periodLabel: 'Mar 2026',
+      status: 'in-progress',
+      counts: { paid: 1, posted: 5, draft: 2, overdue: 0 },
+      totals: { billedPHP: 33700, collectedPHP: 5900 },
+    },
+    {
+      id: 'greenview-mar-2026',
+      propertyName: 'Greenview Residences',
+      billingDay: 5,
+      periodLabel: 'Mar 2026',
+      status: 'not-started',
+      counts: { paid: 0, posted: 0, draft: 0, overdue: 0 },
+      totals: { billedPHP: 0, collectedPHP: 0 },
+    },
+  ],
+  olderOverdue: {
+    billCount: 2,
+    monthLabel: 'Dec 2025',
+    amountPHP: 7300,
+  },
+}
+
+/* Cycle detail — Sunset Apartments, March 2026 */
+export const MOCK_CYCLE_DETAIL: CycleDetailData = {
+  id: 'sunset-mar-2026',
+  propertyName: 'Sunset Apts',
+  periodLabel: 'March 2026',
+  billingDayLabel: 'Mar 15',
+  dueDateLabel: 'Mar 15',
+  daysUntilDue: 6,
+  cycleStatus: 'in-progress',
+  pipeline: {
+    drafts:     { count: 2, sub: 'to review & post' },
+    postNotify: { count: 5, sub: 'posted · 4 unsent', active: true },
+    collect:    { count: 5, sub: '₱21,800 outstanding' },
+    closed:     { sub: 'all paid' },
+  },
+  stats: {
+    billedPHP:      33700,
+    billedSub:      '8 of 11 bills created',
+    collectedPHP:   5900,
+    collectedSub:   '18% so far',
+    outstandingPHP: 27800,
+    daysTodue:      6,
+    dueDateLabel:   'due Mar 15',
+  },
+  missingBillTenants: ['E. Ong', 'M. Sy', 'K. Dela Cruz (all B-204)'],
+  bills: [
+    { id: 'b1',  billNo: 'DRAFT-001',      tenant: 'C. Mendez', room: 'B-203', totalPHP: 3950, balancePHP: null, status: 'draft',   emailStatus: 'na'       },
+    { id: 'b2',  billNo: 'DRAFT-002',      tenant: 'P. Reyes',  room: 'B-203', totalPHP: 3950, balancePHP: null, status: 'draft',   emailStatus: 'na'       },
+    { id: 'b3',  billNo: 'BILL-26-00041',  tenant: 'J. Cruz',   room: 'A-101', totalPHP: 4250, balancePHP: 4250, status: 'posted',  emailStatus: 'not-sent' },
+    { id: 'b4',  billNo: 'BILL-26-00040',  tenant: 'R. Lim',    room: 'A-101', totalPHP: 4350, balancePHP: 1350, status: 'partial', emailStatus: 'sent'     },
+    { id: 'b5',  billNo: 'BILL-26-00039',  tenant: 'A. Tan',    room: 'A-102', totalPHP: 5900, balancePHP: 0,    status: 'paid',    emailStatus: 'na'       },
+    { id: 'b6',  billNo: 'BILL-26-00038',  tenant: 'D. Cruz',   room: 'A-104', totalPHP: 4650, balancePHP: 4650, status: 'posted',  emailStatus: 'not-sent' },
+    { id: 'b7',  billNo: 'BILL-26-00037',  tenant: 'L. Yu',     room: 'A-104', totalPHP: 4650, balancePHP: 4650, status: 'posted',  emailStatus: 'failed'   },
+    { id: 'b8',  billNo: 'BILL-26-00036',  tenant: 'B. So',     room: 'B-201', totalPHP: 3800, balancePHP: 3800, status: 'posted',  emailStatus: 'not-sent' },
+  ],
+  cycleContext: {
+    csvImport:   'water_mar2026.csv, elec_mar2026.csv — imported Mar 10',
+    generatedBy: 'Maria Dela Cruz',
+    generatedAt: 'Mar 11, 2026 · 9:42 AM',
+  },
+}
+
+/* Extended series for range toggle - 12 months ending Mar 2026 */
 export const ALL_COLLECTION_MONTHS = [
   { month: 'Apr', year: 2025, billed: 48000, collected: 44000, isCurrent: false },
   { month: 'May', year: 2025, billed: 51000, collected: 48000, isCurrent: false },
