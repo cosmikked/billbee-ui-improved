@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import {
   AlertTriangle,
   ChevronDown,
@@ -105,6 +106,14 @@ const EMAIL_PILL: Record<EmailStatus, { label: string; variant: 'up' | 'down' | 
   'failed':   { label: 'Failed',   variant: 'down'    },
 }
 
+// Maps the drawer's PaymentMode enum → the table's PaymentMode union
+function toTableMode(raw: string): PaymentMode {
+  const map: Record<string, PaymentMode> = {
+    CASH: 'cash', GCASH: 'e-wallet', BANK: 'bank', CHEQUE: 'other', OTHER: 'other',
+  }
+  return map[raw.toUpperCase()] ?? 'other'
+}
+
 /* ── Table constants ───────────────────────────────────────── */
 
 const TH = 'px-3 py-[10px] bg-bg text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-3 whitespace-nowrap text-left'
@@ -139,68 +148,115 @@ function DetailRow({ label, value }: { label: string; value?: string }) {
 /* ── Receipt preview card ──────────────────────────────────── */
 
 function ReceiptCard({ payment, voided = false }: { payment: PaymentRow; voided?: boolean }) {
-  const isAdvance = payment.type === 'advance'
+  const isAdvance     = payment.type === 'advance'
+  const balanceBefore = payment.billBalanceAfter + payment.amountPHP
+  const maxAdvance    = payment.amountPHP // mock: treat full amount as max for coverage %
 
   return (
     <div className="relative">
-      <Card className={voided ? 'opacity-70' : ''}>
-        {/* Receipt header */}
-        <div className="flex items-start justify-between gap-2 mb-3">
-          <div>
-            <p className="font-display text-[15px] font-semibold text-ink leading-tight">
-              BillBee Receipt
+      <div className={[
+        'border border-border rounded-btn bg-surface overflow-hidden',
+        voided ? 'opacity-70' : '',
+      ].join(' ')}>
+
+        {/* ── Property header ── */}
+        <div className="text-center px-5 pt-5 pb-4 border-b-2 border-border">
+          <p className="text-[15px] font-bold text-ink leading-tight tracking-[-0.01em]">
+            {payment.property}
+          </p>
+          <p className="text-[11.5px] text-ink-4 mt-0.5">Maria Dela Cruz</p>
+        </div>
+
+        <div className="px-5 py-4 flex flex-col gap-4">
+
+          {/* ── Type badge + OR number ── */}
+          <div className="flex flex-col items-center gap-1.5">
+            {isAdvance && (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10.5px] font-semibold tracking-[0.05em] uppercase bg-accent/10 text-accent border border-accent/20">
+                Advance Payment
+              </span>
+            )}
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-surface-2 border border-border font-mono text-[11.5px] text-ink-3">
+              Official Receipt · <span className="font-semibold text-ink">{payment.receiptNo}</span>
+            </span>
+          </div>
+
+          {/* ── Amount hero ── */}
+          <div className="text-center rounded-btn border border-border bg-surface-2 px-4 py-3">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.07em] text-ink-4 mb-1">
+              {isAdvance ? 'Advance Paid' : 'Amount Paid'}
             </p>
-            <p className="text-[11px] text-ink-4 font-mono mt-0.5">{payment.property}</p>
-          </div>
-          <div className="text-right shrink-0">
-            <p className="font-mono text-[12px] text-ink-3">{payment.receiptNo}</p>
-            <p className="font-mono text-[11px] text-ink-4">{payment.date}, 2026</p>
-          </div>
-        </div>
-
-        <div className="border-t border-dashed border-border my-2" />
-
-        {/* Fields */}
-        <div className="flex flex-col gap-1 mb-3">
-          <div className="flex justify-between text-[12.5px]">
-            <span className="text-ink-3">From</span>
-            <span className="text-ink font-medium">{payment.tenantFull}</span>
-          </div>
-          <div className="flex justify-between text-[12.5px]">
-            <span className="text-ink-3">{isAdvance ? 'For period' : 'For bill'}</span>
-            <span className="text-ink font-mono text-[12px]">{payment.billId}</span>
-          </div>
-          <div className="flex justify-between text-[12.5px]">
-            <span className="text-ink-3">Period</span>
-            <span className="text-ink">{payment.period}</span>
-          </div>
-          <div className="flex justify-between text-[12.5px]">
-            <span className="text-ink-3">Mode</span>
-            <span className="text-ink capitalize">{payment.mode}</span>
-          </div>
-        </div>
-
-        <div className="border-t border-border mt-2 pt-3 flex items-baseline justify-between">
-          <span className="text-[12.5px] text-ink-3">Amount paid</span>
-          <span className="font-mono text-[22px] font-bold text-ink">{fmtPHP(payment.amountPHP)}</span>
-        </div>
-
-        <div className="mt-2 pt-2 border-t border-border-subtle">
-          {voided ? (
-            <p className="text-[11.5px] text-ink-4">
-              Void receipts stay visible. Cannot be emailed as active.
+            <p className="font-mono text-[28px] font-bold text-ink leading-tight">
+              {fmtPHP(payment.amountPHP)}
             </p>
-          ) : (
-            <p className="text-[11.5px] text-ink-3">
-              Bill balance after: <span className="font-mono">{fmtPHP(payment.billBalanceAfter)}</span>
-              {payment.billBalanceAfter === 0 && (
-                <span className="text-success"> · marked Paid</span>
-              )}
-            </p>
-          )}
-          <p className="text-[11px] text-ink-4 mt-0.5">Issued by {payment.recordedBy} · billbee.app</p>
+            {isAdvance && payment.advancePeriod && (
+              <p className="text-[11.5px] text-ink-3 mt-1">Applied to {payment.advancePeriod}</p>
+            )}
+          </div>
+
+          {/* ── Details grid ── */}
+          <div className="flex flex-col divide-y divide-border border border-border rounded-btn overflow-hidden">
+            {[
+              { label: 'Bill reference', value: payment.billId },
+              { label: 'Tenant',         value: payment.tenantFull },
+              { label: 'Room',           value: 'A-101' },
+              { label: isAdvance ? 'Applied to period' : 'Billing period', value: payment.period },
+              { label: 'Payment date',   value: `${payment.date}, 2026` },
+              { label: 'Method',         value: payment.mode.charAt(0).toUpperCase() + payment.mode.slice(1) },
+              { label: 'Recorded by',    value: payment.recordedBy },
+            ].map(row => (
+              <div key={row.label} className="flex items-center justify-between px-3 py-1.5 bg-surface">
+                <span className="text-[11.5px] text-ink-3">{row.label}</span>
+                <span className="text-[12px] text-ink font-medium">{row.value}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* ── Balance / coverage summary ── */}
+          <div className="flex flex-col divide-y divide-border border border-border rounded-btn overflow-hidden">
+            {isAdvance ? (
+              <>
+                <div className="flex items-center justify-between px-3 py-1.5 bg-surface">
+                  <span className="text-[11.5px] text-ink-3">Amount paid</span>
+                  <span className="font-mono text-[12px] text-success">{fmtPHP(payment.amountPHP)}</span>
+                </div>
+                <div className="flex items-center justify-between px-3 py-2 bg-surface-2">
+                  <span className="text-[12px] font-semibold text-ink">Coverage</span>
+                  <span className="font-mono text-[13px] font-bold text-ink">
+                    {Math.round((payment.amountPHP / maxAdvance) * 100)}%
+                  </span>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center justify-between px-3 py-1.5 bg-surface">
+                  <span className="text-[11.5px] text-ink-3">Balance before</span>
+                  <span className="font-mono text-[12px] text-ink">{fmtPHP(balanceBefore)}</span>
+                </div>
+                <div className="flex items-center justify-between px-3 py-1.5 bg-surface">
+                  <span className="text-[11.5px] text-ink-3">Amount paid</span>
+                  <span className="font-mono text-[12px] text-success">− {fmtPHP(payment.amountPHP)}</span>
+                </div>
+                <div className="flex items-center justify-between px-3 py-2 bg-surface-2">
+                  <span className="text-[12px] font-semibold text-ink">Remaining balance</span>
+                  <span className={`font-mono text-[13px] font-bold ${payment.billBalanceAfter > 0 ? 'text-danger' : 'text-success'}`}>
+                    {fmtPHP(payment.billBalanceAfter)}
+                  </span>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* ── Footer ── */}
+          <p className="text-center text-[11px] text-ink-4 border-t border-border pt-3">
+            {voided
+              ? 'This receipt has been voided and is no longer valid.'
+              : `Issued by ${payment.recordedBy} · BillBee`
+            }
+          </p>
+
         </div>
-      </Card>
+      </div>
 
       {/* VOID watermark */}
       {voided && (
@@ -217,12 +273,72 @@ function ReceiptCard({ payment, voided = false }: { payment: PaymentRow; voided?
 /* ── Page ──────────────────────────────────────────────────── */
 
 export function PaymentsReceipts() {
-  const [selected,    setSelected]    = useState<PaymentRow | null>(null)
-  const [voidTarget,  setVoidTarget]  = useState<PaymentRow | null>(null)
-  const [voidReason,  setVoidReason]  = useState('')
+  const navigate                         = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [payments,      setPayments]      = useState<PaymentRow[]>(PAYMENTS)
+  const [selected,      setSelected]      = useState<PaymentRow | null>(null)
+  const [voidTarget,    setVoidTarget]    = useState<PaymentRow | null>(null)
+  const [voidReason,    setVoidReason]    = useState('')
   const [bannerVisible, setBannerVisible] = useState(true)
+  const [highlightId,   setHighlightId]   = useState<string | null>(null)
+  const highlightRowRef = useRef<HTMLTableRowElement | null>(null)
 
-  const failedCount = PAYMENTS.filter(p => p.emailStatus === 'failed' && p.status === 'active').length
+  // On mount: inject new row from query params and highlight it
+  useEffect(() => {
+    const orNumber = searchParams.get('highlight')
+    if (!orNumber) return
+
+    // Strip params from URL immediately
+    setSearchParams({}, { replace: true })
+
+    const amount  = parseFloat(searchParams.get('amount') ?? '0')
+    const period  = searchParams.get('period') ?? ''
+    const modeRaw = searchParams.get('mode') ?? 'CASH'
+    const tenant  = searchParams.get('tenant') ?? ''
+    const billId  = searchParams.get('billId') ?? ''
+
+    // Check if already exists (e.g. page refresh)
+    const existing = PAYMENTS.find(p => p.receiptNo === orNumber)
+    let targetRow: PaymentRow
+
+    if (existing) {
+      targetRow = existing
+    } else {
+      const today = new Date()
+      targetRow = {
+        id:              orNumber,
+        date:            today.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }),
+        tenant,
+        tenantFull:      tenant,
+        billId,
+        type:            'advance',
+        advancePeriod:   period,
+        amountPHP:       amount,
+        mode:            toTableMode(modeRaw),
+        receiptNo:       orNumber,
+        emailStatus:     'not-sent',
+        status:          'active',
+        recordedBy:      'Maria',
+        property:        'Sunset Apartments',
+        period,
+        billBalanceAfter: 0,
+      }
+      setPayments(prev => [targetRow, ...prev])
+    }
+
+    setHighlightId(targetRow.id)
+    const timer = setTimeout(() => setHighlightId(null), 3000)
+    return () => clearTimeout(timer)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Scroll highlighted row into view once it renders
+  useEffect(() => {
+    if (highlightId && highlightRowRef.current) {
+      highlightRowRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }, [highlightId])
+
+  const failedCount = payments.filter(p => p.emailStatus === 'failed' && p.status === 'active').length
 
   return (
     <main className="px-8 pt-4 pb-16 max-w-[1320px] mx-auto w-full">
@@ -260,7 +376,7 @@ export function PaymentsReceipts() {
         <FilterChip label="type"     value="regular + advance" />
         <FilterChip label="email"    value="any"               />
         <FilterChip label="status"   value="active"            />
-        <span className="ml-auto text-[12.5px] text-ink-4">{PAYMENTS.length} results</span>
+        <span className="ml-auto text-[12.5px] text-ink-4">{payments.length} results</span>
       </div>
 
       {/* Table */}
@@ -281,19 +397,22 @@ export function PaymentsReceipts() {
               </tr>
             </thead>
             <tbody>
-              {PAYMENTS.map(row => {
-                const isVoid     = row.status === 'void'
-                const isSelected = selected?.id === row.id
+              {payments.map(row => {
+                const isVoid      = row.status === 'void'
+                const isSelected  = selected?.id === row.id
+                const isHighlight = highlightId === row.id
                 const { label: emailLabel, variant: emailVariant } = EMAIL_PILL[row.emailStatus]
 
                 return (
                   <tr
                     key={row.id}
+                    ref={isHighlight ? highlightRowRef : null}
                     onClick={() => setSelected(row)}
                     className={[
-                      'border-b border-border-subtle transition-ui cursor-pointer',
-                      isVoid     ? 'opacity-50'      : '',
-                      isSelected ? 'bg-accent-tint'  : 'hover:bg-surface-2',
+                      'border-b border-border-subtle cursor-pointer transition-colors duration-700',
+                      isVoid      ? 'opacity-50'                            : '',
+                      isHighlight ? 'bg-accent/10 animate-pulse'            :
+                      isSelected  ? 'bg-accent-tint'                        : 'hover:bg-surface-2',
                     ].join(' ')}
                   >
                     <td className={`${TD} py-[var(--pad-row)] font-mono text-[12px] text-ink-3`}>{row.date}</td>
@@ -336,10 +455,19 @@ export function PaymentsReceipts() {
         title="Payment record"
         subtitle={selected ? selected.receiptNo : ''}
         actions={
-          selected ? (
-            <Button size="sm" variant="primary">
+          selected && selected.type !== 'advance' ? (
+            <Button
+              size="sm"
+              variant="primary"
+              onClick={() => {
+                setSelected(null)
+                navigate(`/landlord/billing/posted/${selected.billId}`)
+              }}
+            >
               open bill <ChevronRight size={12} strokeWidth={2} />
             </Button>
+          ) : selected?.type === 'advance' ? (
+            <span className="text-[11.5px] text-ink-4 italic">future period</span>
           ) : undefined
         }
       >
@@ -362,7 +490,7 @@ export function PaymentsReceipts() {
             {selected.status === 'active' && (
               <Button
                 variant="accent"
-                className="w-full justify-center"
+                className="w-full justify-center text-danger border-danger-soft hover:bg-danger-soft hover:border-danger"
                 onClick={() => { setVoidTarget(selected); setVoidReason('') }}
               >
                 Void payment

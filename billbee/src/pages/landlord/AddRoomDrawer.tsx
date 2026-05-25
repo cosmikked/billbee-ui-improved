@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Check, Plus, Trash2, Zap } from 'lucide-react'
 import { MOCK_PROPERTIES, MOCK_CHARGES } from '../../data/mock'
 import type { RentMode, RoomStatus } from '../../types/rooms'
@@ -8,14 +8,14 @@ import { Drawer } from '../../components/ui/Drawer'
 import { Button } from '../../components/ui/Button'
 import { SegmentedControl } from '../../components/ui/SegmentedControl'
 
-/* ── Props ─────────────────────────────────────────────────── */
+/* â”€â”€ Props â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 interface AddRoomDrawerProps {
   open: boolean
   onClose: () => void
 }
 
-/* ── Helpers ───────────────────────────────────────────────── */
+/* â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 const INPUT_CLS =
   'border border-border rounded-btn px-3 py-2 text-[13.5px] text-ink bg-surface ' +
@@ -48,7 +48,7 @@ function Field({
   )
 }
 
-/* ── Helpers ───────────────────────────────────────────────── */
+/* â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 const ROOM_LEVEL_SCOPES: ChargeScope[] = ['room-level', 'room-fixed']
 
@@ -59,10 +59,10 @@ function scopeLabel(scope: ChargeScope) {
 }
 
 function fmtPHP(n: number) {
-  return `₱${n.toLocaleString('en-PH')}`
+  return `â‚±${n.toLocaleString('en-PH')}`
 }
 
-/* ── Custom charge type ────────────────────────────────────── */
+/* â”€â”€ Custom charge type â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 interface CustomCharge {
   id: string
@@ -74,7 +74,7 @@ function newCustomCharge(): CustomCharge {
   return { id: crypto.randomUUID(), name: '', amount: '' }
 }
 
-/* ── Component ─────────────────────────────────────────────── */
+/* â”€â”€ Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 const RENT_MODES: readonly RentMode[] = ['Room Total (Split)', 'Per-Tenant']
 
@@ -140,7 +140,7 @@ export function AddRoomDrawer({ open, onClose }: AddRoomDrawerProps) {
       open={open}
       onClose={handleClose}
       side="right"
-      width={480}
+      width="50vw"
       title="Add room"
       subtitle="Fill in the details to add a new room"
       footer={
@@ -176,7 +176,7 @@ export function AddRoomDrawer({ open, onClose }: AddRoomDrawerProps) {
         </Field>
 
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Capacity" required hint="≥ active tenants">
+          <Field label="Capacity" required hint="â‰¥ active tenants">
             <input
               type="number"
               min={1}
@@ -189,7 +189,7 @@ export function AddRoomDrawer({ open, onClose }: AddRoomDrawerProps) {
           <Field label="Monthly rent" required>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13.5px] text-ink-3 pointer-events-none">
-                ₱
+                â‚±
               </span>
               <input
                 type="number"
@@ -219,7 +219,7 @@ export function AddRoomDrawer({ open, onClose }: AddRoomDrawerProps) {
           />
         </Field>
 
-        {/* ── Assign charges ─────────────────────────────── */}
+        {/* â”€â”€ Assign charges â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <div className="flex flex-col gap-2">
           <div>
             <label className="text-[11px] font-semibold uppercase tracking-[0.07em] text-ink-3">
@@ -294,7 +294,7 @@ export function AddRoomDrawer({ open, onClose }: AddRoomDrawerProps) {
                     className={`${INPUT_CLS} flex-1`}
                   />
                   <div className="relative w-[110px] shrink-0">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-ink-3 pointer-events-none">₱</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-ink-3 pointer-events-none">â‚±</span>
                     <input
                       type="number"
                       min={0}
@@ -342,3 +342,5 @@ export function AddRoomDrawer({ open, onClose }: AddRoomDrawerProps) {
     </Drawer>
   )
 }
+
+

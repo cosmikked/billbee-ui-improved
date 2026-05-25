@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   ArrowRight, ChevronRight, ChevronDown,
   MoreHorizontal, Users, Send,
@@ -119,10 +119,21 @@ const cycle = MOCK_CYCLE_DETAIL
 
 export function CycleDetail() {
   const navigate = useNavigate()
-  const [activeTab,    setActiveTab]    = useState<FilterTab>('all')
-  const [search,       setSearch]       = useState('')
-  const [selectedIds,  setSelectedIds]  = useState<Set<string>>(new Set())
-  const [ctxOpen,      setCtxOpen]      = useState(false)
+  const [searchParams] = useSearchParams()
+  const [activeTab,       setActiveTab]       = useState<FilterTab>(() =>
+    searchParams.get('tab') === 'draft' ? 'draft' : 'all'
+  )
+  const [search,          setSearch]          = useState('')
+  const [selectedIds,     setSelectedIds]     = useState<Set<string>>(new Set())
+  const [ctxOpen,         setCtxOpen]         = useState(false)
+  const [highlightDrafts, setHighlightDrafts] = useState(searchParams.get('highlight') === '1')
+
+  // Clear highlight after 3 seconds
+  useEffect(() => {
+    if (!highlightDrafts) return
+    const t = setTimeout(() => setHighlightDrafts(false), 3000)
+    return () => clearTimeout(t)
+  }, [highlightDrafts])
 
   /* Filtering */
   const filtered = cycle.bills.filter(b => {
@@ -170,7 +181,7 @@ export function CycleDetail() {
   const TABS: { id: FilterTab; label: string }[] = [
     { id: 'all',          label: 'All'           },
     { id: 'draft',        label: 'Drafts'        },
-    { id: 'posted-unsent',label: 'Posted unsent' },
+    { id: 'posted-unsent',label: 'Posted' },
     { id: 'partial-paid', label: 'Partial / Paid'},
     { id: 'failed-email', label: 'Failed email'  },
     { id: 'overdue',      label: 'Overdue'       },
@@ -384,8 +395,13 @@ export function CycleDetail() {
                         )
                       }
                       className={[
-                        'border-b border-border-subtle transition-ui cursor-pointer',
-                        isSelected ? 'bg-accent-tint' : 'hover:bg-surface-2',
+                        'border-b border-border-subtle cursor-pointer',
+                        highlightDrafts && bill.status === 'draft'
+                          ? 'bg-accent/10 animate-pulse'
+                          : isSelected
+                            ? 'bg-accent-tint'
+                            : 'hover:bg-surface-2',
+                        'transition-colors duration-700',
                       ].join(' ')}
                     >
                       {/* Checkbox */}

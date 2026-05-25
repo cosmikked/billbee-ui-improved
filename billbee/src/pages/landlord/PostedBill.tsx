@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { RecordPaymentDrawer } from './RecordPaymentDrawer'
 import { RecordAdvanceDrawer } from './RecordAdvanceDrawer'
+import type { AdvanceSuccessData } from './RecordAdvanceDrawer'
 import {
   ChevronDown,
   ChevronLeft,
@@ -12,24 +13,24 @@ import {
 } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
+import { Modal } from '../../components/ui/Modal'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 
 /* ── Types ─────────────────────────────────────────────────── */
 
-type ChargeSource = 'room' | 'room-csv' | 'tenant' | 'imported'
+type ChargeType = 'fixed' | 'non-fixed'
 
-interface BillLine {
+interface ChargeLine {
   id: string
   name: string
-  source: ChargeSource
-  detail: string
   amount: number
+  type: ChargeType
 }
 
-interface BillSection {
+interface ChargeSection {
   id: string
   label: string
-  lines: BillLine[]
+  lines: ChargeLine[]
 }
 
 /* ── Helpers ───────────────────────────────────────────────── */
@@ -38,34 +39,30 @@ function fmtPHP(value: number): string {
   return `₱${Math.abs(value).toLocaleString('en-PH')}`
 }
 
-/* ── Source tag ────────────────────────────────────────────── */
-
-const SOURCE_LABEL: Record<ChargeSource, string> = {
-  'room':     'FROM ROOM',
-  'room-csv': 'FROM ROOM-CSV',
-  'tenant':   'FROM TENANT',
-  'imported': 'IMPORTED',
+function signedFmt(value: number): string {
+  return value < 0 ? `-${fmtPHP(value)}` : fmtPHP(value)
 }
 
-function SourceTag({ source }: { source: ChargeSource }) {
-  const accent = source === 'imported'
+/* ── Charge type tag ───────────────────────────────────────── */
+
+function TypeTag({ type }: { type: ChargeType }) {
   return (
     <span
       className={[
         'inline-flex items-center px-1.5 py-px rounded border text-[10px] font-mono font-medium shrink-0',
-        accent
+        type === 'non-fixed'
           ? 'bg-accent-soft text-accent-2 border-accent-soft'
           : 'bg-surface-2 text-ink-4 border-border',
       ].join(' ')}
     >
-      {SOURCE_LABEL[source]}
+      {type === 'non-fixed' ? 'NON-FIXED' : 'FIXED'}
     </span>
   )
 }
 
 /* ── Collapsible section (read-only) ───────────────────────── */
 
-function SectionBlock({ label, lines }: { label: string; lines: BillLine[] }) {
+function SectionBlock({ label, lines }: { label: string; lines: ChargeLine[] }) {
   const [open, setOpen] = useState(true)
   const sectionTotal = lines.reduce((s, l) => s + l.amount, 0)
 
@@ -82,23 +79,56 @@ function SectionBlock({ label, lines }: { label: string; lines: BillLine[] }) {
           className={`text-ink-4 shrink-0 transition-transform ${open ? '' : '-rotate-90'}`}
         />
         <span className="flex-1 text-[13px] font-semibold text-ink">{label}</span>
-        <span className="font-mono text-[12.5px] text-ink-3">{fmtPHP(sectionTotal)}</span>
+        <span className="font-mono text-[12.5px] text-ink-3">{signedFmt(sectionTotal)}</span>
       </button>
 
       {open && (
         <div className="pb-1.5">
           {lines.map(line => (
             <div key={line.id} className="flex items-center gap-2.5 px-4 py-1.5">
-              <span className="flex-1 text-[13px] text-ink-2">{line.name}</span>
-              <span className="text-[12px] text-ink-4 font-mono hidden sm:block">{line.detail}</span>
-              <SourceTag source={line.source} />
-              <span className="font-mono text-[13px] w-[72px] text-right shrink-0 text-ink">
-                {fmtPHP(line.amount)}
+              <span className="flex-1 text-[13px] text-ink-2 truncate">{line.name}</span>
+              <TypeTag type={line.type} />
+              <span
+                className={[
+                  'font-mono text-[13px] w-[68px] text-right shrink-0',
+                  line.amount < 0 ? 'text-success' : 'text-ink',
+                ].join(' ')}
+              >
+                {signedFmt(line.amount)}
               </span>
+              {/* Spacer to align with DraftBill's edit button column */}
+              <span className="w-[44px] shrink-0" />
             </div>
           ))}
         </div>
       )}
+    </div>
+  )
+}
+
+/* ── Sidebar summary row ───────────────────────────────────── */
+
+function SummaryRow({
+  label,
+  value,
+  muted = false,
+  strong = false,
+}: {
+  label: string
+  value: string
+  muted?: boolean
+  strong?: boolean
+}) {
+  return (
+    <div className={`flex items-baseline justify-between py-1.5 ${muted ? 'opacity-50' : ''}`}>
+      <span className={`text-[12.5px] ${strong ? 'font-semibold text-ink' : 'text-ink-3'}`}>
+        {label}
+      </span>
+      <span
+        className={`font-mono ${strong ? 'text-[13.5px] font-semibold text-ink' : 'text-[13px] text-ink-2'}`}
+      >
+        {value}
+      </span>
     </div>
   )
 }
@@ -116,35 +146,43 @@ const BILL = {
   paidPHP:     0,
 }
 
-const SECTIONS: BillSection[] = [
+const SECTIONS: ChargeSection[] = [
   {
     id: 'rent',
     label: 'Rent',
     lines: [
-      { id: 'r1', name: 'Rent share', source: 'room', detail: 'A-101 ₱6,000 ÷ 2', amount: 3000 },
+      { id: 'r1', name: 'Rent', amount: 3000, type: 'fixed' },
     ],
   },
   {
-    id: 'fixed',
-    label: 'Fixed Charges',
+    id: 'utilities',
+    label: 'Utilities',
     lines: [
-      { id: 'f1', name: 'Wi-Fi share', source: 'room', detail: '₱200 ÷ 2', amount: 100 },
+      { id: 'u1', name: 'Water',       amount: 150, type: 'non-fixed' },
+      { id: 'u2', name: 'Electricity', amount: 400, type: 'non-fixed' },
     ],
   },
   {
-    id: 'nonfixed',
-    label: 'Non-Fixed Charges',
+    id: 'amenities',
+    label: 'Amenities',
     lines: [
-      { id: 'nf1', name: 'Water share', source: 'room-csv', detail: '₱300 ÷ 2', amount: 150 },
-      { id: 'nf2', name: 'Elec. share', source: 'room-csv', detail: '₱800 ÷ 2', amount: 400 },
+      { id: 'am1', name: 'Wi-Fi',      amount: 100, type: 'fixed' },
+      { id: 'am2', name: 'Parking',    amount: 500, type: 'fixed' },
+      { id: 'am3', name: 'Laptop fee', amount: 100, type: 'fixed' },
     ],
   },
   {
-    id: 'tenant',
-    label: 'Tenant-Specific / Additional Charges',
+    id: 'penalty',
+    label: 'Penalty',
     lines: [
-      { id: 'ts1', name: 'Parking Fee', source: 'tenant', detail: 'fixed',            amount: 500 },
-      { id: 'ts2', name: 'Laptop fee',  source: 'tenant', detail: 'tenant-specific',   amount: 100 },
+      { id: 'pen1', name: 'Prior balance adj.', amount: -200, type: 'fixed' },
+    ],
+  },
+  {
+    id: 'advance',
+    label: 'Advance Coverage',
+    lines: [
+      { id: 'adv1', name: 'Advance applied', amount: -500, type: 'fixed' },
     ],
   },
 ]
@@ -152,9 +190,36 @@ const SECTIONS: BillSection[] = [
 /* ── Page ──────────────────────────────────────────────────── */
 
 export function PostedBill() {
-  const balance = BILL.totalPHP - BILL.paidPHP
-  const [paymentDrawerOpen,  setPaymentDrawerOpen]  = useState(false)
-  const [advanceDrawerOpen,  setAdvanceDrawerOpen]  = useState(false)
+  const navigate = useNavigate()
+
+  const [paymentDrawerOpen, setPaymentDrawerOpen] = useState(false)
+  const [advanceDrawerOpen, setAdvanceDrawerOpen] = useState(false)
+  const [paidPHP,           setPaidPHP]           = useState(BILL.paidPHP)
+  const [advanceConfirm,    setAdvanceConfirm]     = useState<AdvanceSuccessData | null>(null)
+
+  const allLines   = SECTIONS.flatMap(s => s.lines)
+  const grandTotal = allLines.reduce((s, l) => s + l.amount, 0)
+
+  const sum = (sid: string) =>
+    SECTIONS.find(s => s.id === sid)?.lines.reduce((a, l) => a + l.amount, 0) ?? 0
+
+  const rentTotal      = sum('rent')
+  const utilitiesTotal = sum('utilities')
+  const amenitiesTotal = sum('amenities')
+  const penaltyTotal   = sum('penalty')
+  const advanceCovered = sum('advance')
+  const subTotal       = rentTotal + utilitiesTotal + amenitiesTotal + penaltyTotal
+  const totalDue       = subTotal + advanceCovered
+  const balance        = totalDue - paidPHP
+  const isPaid         = balance <= 0
+
+  function handlePaymentSuccess(amountPaid: number) {
+    setPaidPHP(prev => prev + amountPaid)
+  }
+
+  function handleAdvanceSuccess(data: AdvanceSuccessData) {
+    setAdvanceConfirm(data)
+  }
 
   return (
     <main className="px-8 pt-4 pb-16 max-w-[1320px] mx-auto w-full">
@@ -162,17 +227,15 @@ export function PostedBill() {
       {/* Page header */}
       <div className="flex items-start gap-4 mb-6 flex-wrap">
         <div className="flex-1 min-w-0">
-          <h1 className="font-display text-[24px] font-semibold tracking-[-0.02em] text-ink leading-tight mb-0.5">
-            Bill
-            <span className="text-ink-3 font-normal mx-2">·</span>
-            {BILL.id}
-          </h1>
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <StatusBadge status="posted" />
-            <span className="text-[13px] text-ink-3">
-              {BILL.tenant} · {BILL.room} · period {BILL.period} · due {BILL.dueDate}
-            </span>
+          <div className="flex items-center gap-2.5 mb-0.5 flex-wrap">
+            <h1 className="font-display text-[24px] font-semibold tracking-[-0.02em] text-ink leading-tight">
+              {BILL.id}
+            </h1>
+            <StatusBadge status={isPaid ? 'paid' : 'posted'} />
           </div>
+          <p className="text-[13px] text-ink-3 mt-0.5">
+            {BILL.tenant} · {BILL.room} · period {BILL.period} · due {BILL.dueDate}
+          </p>
         </div>
 
         {/* Actions */}
@@ -202,68 +265,167 @@ export function PostedBill() {
         </div>
       </div>
 
-      {/* Bill statement card */}
-      <Card noPadding>
+      {/* Split layout */}
+      <div className="flex gap-6 items-start">
 
-        {/* Card header */}
-        <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-border flex-wrap">
-          <div className="flex items-baseline gap-3 min-w-0">
-            <h2 className="text-[13.5px] font-semibold text-ink">Bill statement</h2>
-            <span className="text-[11.5px] text-ink-4 font-mono">
-              generated {BILL.generatedOn} · invoice locked
-            </span>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <Button size="sm" variant="accent" onClick={() => setPaymentDrawerOpen(true)}>+ Record payment</Button>
-            <Button size="sm" variant="default" onClick={() => setAdvanceDrawerOpen(true)}>+ Record advance</Button>
-          </div>
-        </div>
+        {/* ── LEFT bill panel ── */}
+        <div className="flex-1 min-w-0 flex flex-col gap-4">
 
-        {/* Collapsible charge sections */}
-        {SECTIONS.map(section => (
-          <SectionBlock key={section.id} label={section.label} lines={section.lines} />
-        ))}
+          {/* Bill statement card */}
+          <Card noPadding>
+            <div className="px-4 py-3 border-b border-border flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-baseline gap-3 min-w-0">
+                <h2 className="text-[13.5px] font-semibold text-ink">Bill statement</h2>
+                <span className="text-[11.5px] text-ink-4 font-mono">
+                  generated {BILL.generatedOn} · invoice locked
+                </span>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Button
+                  size="sm"
+                  variant="accent"
+                  onClick={() => setPaymentDrawerOpen(true)}
+                  disabled={isPaid}
+                  title={isPaid ? 'Bill is fully paid' : undefined}
+                >
+                  + Record payment
+                </Button>
+                <Button size="sm" variant="default" onClick={() => setAdvanceDrawerOpen(true)}>
+                  + Record advance
+                </Button>
+              </div>
+            </div>
 
-        {/* Summary rows */}
-        <div className="border-t-2 border-border-strong">
+            {SECTIONS.map(section => (
+              <SectionBlock key={section.id} label={section.label} lines={section.lines} />
+            ))}
 
-          {/* Total amount due */}
-          <div className="flex items-center justify-between px-4 py-3 bg-surface-2">
-            <span className="text-[13.5px] font-semibold text-ink">Total amount due</span>
-            <span className="font-mono text-[17px] font-bold text-ink">{fmtPHP(BILL.totalPHP)}</span>
-          </div>
-
-          {/* Paid so far */}
-          <div className="flex items-center justify-between px-4 py-2.5 border-t border-border">
-            <span className="text-[13px] text-ink-3">Paid so far</span>
-            <span className="font-mono text-[13px] text-ink-3">{fmtPHP(BILL.paidPHP)}</span>
-          </div>
-
-          {/* Current balance */}
-          <div className="flex items-center justify-between px-4 py-3 border-t border-border">
-            <span className="text-[13.5px] font-semibold text-ink">Current balance</span>
-            <span
-              className={`font-mono text-[15px] font-bold ${
-                balance > 0 ? 'text-danger' : 'text-success'
-              }`}
-            >
-              {fmtPHP(balance)}
-            </span>
-          </div>
+            <div className="flex items-center justify-between px-4 py-3 border-t-2 border-border-strong bg-surface-2">
+              <span className="text-[13.5px] font-semibold text-ink">Total</span>
+              <span className="font-mono text-[15px] font-bold text-ink">{fmtPHP(grandTotal)}</span>
+            </div>
+          </Card>
 
         </div>
-      </Card>
 
-      {/* PDF preview link */}
-      <div className="flex justify-end mt-3">
-        <Button size="sm" variant="ghost">
-          view PDF preview <ChevronRight size={12} strokeWidth={2} />
-        </Button>
+        {/* ── RIGHT sidebar ── */}
+        <div className="w-[280px] shrink-0 sticky top-6 flex flex-col gap-4">
+
+          {/* Previous Period */}
+          <Card>
+            <p className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-ink-4 mb-3">
+              Previous Period
+            </p>
+            <SummaryRow label="Amount Due from Previous Period" value={fmtPHP(0)} />
+            <div className="border-t border-border my-1" />
+            <SummaryRow label="Remaining Balance Due Immediately" value={fmtPHP(0)} strong />
+          </Card>
+
+          {/* Current Period breakdown */}
+          <Card>
+            <p className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-ink-4 mb-3">
+              Current Period
+            </p>
+            <SummaryRow label="Rent"      value={fmtPHP(rentTotal)} />
+            <SummaryRow label="Utilities" value={fmtPHP(utilitiesTotal)} />
+            <SummaryRow label="Amenities" value={fmtPHP(amenitiesTotal)} />
+            <SummaryRow label="Penalty"   value={signedFmt(penaltyTotal)} />
+
+            <div className="border-t border-border my-2" />
+            <SummaryRow label="Sub Total"            value={fmtPHP(subTotal)} strong />
+            <SummaryRow label="Tax (0%)"             value="₱0" muted />
+            <SummaryRow label="Withholding Tax (0%)" value="₱0" muted />
+            <SummaryRow label="Advance Coverage"     value={signedFmt(advanceCovered)} />
+
+            <div className="border-t-2 border-border-strong mt-2 pt-3">
+              <div className="flex items-baseline justify-between">
+                <span className="text-[13px] font-semibold text-ink">Total Amount Due</span>
+                <span className="font-mono text-[20px] font-bold text-ink">{fmtPHP(totalDue)}</span>
+              </div>
+            </div>
+
+            <div className="border-t border-border mt-3 pt-2.5">
+              <SummaryRow label="Due Date" value={`${BILL.dueDate}, 2026`} />
+            </div>
+          </Card>
+
+          {/* Payment status */}
+          <Card>
+            <p className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-ink-4 mb-3">
+              Payment Status
+            </p>
+            <SummaryRow label="Total Amount Due" value={fmtPHP(totalDue)} />
+            <SummaryRow label="Paid so far"      value={fmtPHP(paidPHP)} />
+            <div className="border-t-2 border-border-strong mt-2 pt-3">
+              <div className="flex items-baseline justify-between">
+                <span className="text-[13px] font-semibold text-ink">Current Balance</span>
+                <span
+                  className={`font-mono text-[20px] font-bold ${
+                    balance > 0 ? 'text-danger' : 'text-success'
+                  }`}
+                >
+                  {fmtPHP(balance)}
+                </span>
+              </div>
+            </div>
+          </Card>
+
+        </div>
       </div>
+
+      {/* Advance confirmation modal */}
+      <Modal
+        open={advanceConfirm !== null}
+        onClose={() => setAdvanceConfirm(null)}
+        title="Advance payment recorded"
+        subtitle={advanceConfirm ? `Applied to ${advanceConfirm.period}` : undefined}
+        width={400}
+        footer={
+          <div className="flex gap-2 justify-end">
+            <Button variant="default" onClick={() => setAdvanceConfirm(null)}>
+              Close
+            </Button>
+            <Button
+              variant="accent"
+              onClick={() => {
+                if (!advanceConfirm) return
+                const p = new URLSearchParams({
+                  highlight: advanceConfirm.orNumber,
+                  amount:    String(advanceConfirm.amount),
+                  period:    advanceConfirm.period,
+                  mode:      advanceConfirm.mode,
+                  tenant:    advanceConfirm.tenant,
+                  billId:    advanceConfirm.billId,
+                })
+                setAdvanceConfirm(null)
+                navigate(`/landlord/payments?${p.toString()}`)
+              }}
+            >
+              View payment record →
+            </Button>
+          </div>
+        }
+      >
+        {advanceConfirm && (
+          <div className="flex flex-col gap-3">
+            <p className="text-[13.5px] text-ink-2 leading-relaxed">
+              An advance of{' '}
+              <strong className="text-ink font-semibold">{fmtPHP(advanceConfirm.amount)}</strong>{' '}
+              has been recorded and will be applied to the{' '}
+              <strong className="text-ink font-semibold">{advanceConfirm.period}</strong> billing period.
+            </p>
+            <div className="flex items-center justify-between px-3 py-2 rounded-btn bg-surface-2 border border-border">
+              <span className="text-[11.5px] text-ink-3">Official Receipt #</span>
+              <span className="font-mono text-[12.5px] font-semibold text-ink">{advanceConfirm.orNumber}</span>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       <RecordAdvanceDrawer
         open={advanceDrawerOpen}
         onClose={() => setAdvanceDrawerOpen(false)}
+        onSuccess={handleAdvanceSuccess}
         billId={BILL.id}
         tenant={BILL.tenant}
         period={BILL.period}
@@ -271,6 +433,7 @@ export function PostedBill() {
       <RecordPaymentDrawer
         open={paymentDrawerOpen}
         onClose={() => setPaymentDrawerOpen(false)}
+        onSuccess={handlePaymentSuccess}
         billId={BILL.id}
         tenant={BILL.tenant}
         period={BILL.period}

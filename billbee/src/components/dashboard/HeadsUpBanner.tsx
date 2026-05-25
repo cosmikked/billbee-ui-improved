@@ -17,7 +17,7 @@ export function HeadsUpBanner({ propertyName, cycleUrl }: HeadsUpBannerProps) {
       className="mb-6"
       icon={<Clock size={18} strokeWidth={1.75} />}
       action={
-        <Button variant="primary" size="sm" onClick={() => navigate(cycleUrl)}>
+        <Button variant="default" size="sm" onClick={() => navigate(cycleUrl)}>
           Start prep
           <ArrowRight size={14} strokeWidth={1.75} />
         </Button>

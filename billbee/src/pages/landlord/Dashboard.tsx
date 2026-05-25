@@ -26,12 +26,6 @@ export function Dashboard() {
       <PageHead
         title={greeting}
         subtitle={subtitle}
-        actions={
-          <Button variant="accent" onClick={() => navigate('/landlord/billing/generate')}>
-            <Plus size={14} strokeWidth={2} />
-            Generate Bills
-          </Button>
-        }
       />
 
       {/* Heads-up banner */}

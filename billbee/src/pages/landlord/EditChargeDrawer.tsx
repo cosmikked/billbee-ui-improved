@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { Info } from 'lucide-react'
 import { MOCK_PROPERTIES } from '../../data/mock'
 import type { Charge, ChargeScope, ChargeType } from '../../types/charges'
@@ -7,7 +7,7 @@ import { Button } from '../../components/ui/Button'
 import { Callout } from '../../components/ui/Callout'
 import { SegmentedControl } from '../../components/ui/SegmentedControl'
 
-/* ── Props ─────────────────────────────────────────────────── */
+/* â”€â”€ Props â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 interface EditChargeDrawerProps {
   charge: Charge | null
@@ -15,7 +15,7 @@ interface EditChargeDrawerProps {
   onSave: (updated: Charge) => void
 }
 
-/* ── Helpers ───────────────────────────────────────────────── */
+/* â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 const INPUT_CLS =
   'border border-border rounded-btn px-3 py-2 text-[13.5px] text-ink bg-surface ' +
@@ -46,7 +46,7 @@ function Field({
   )
 }
 
-/* ── Constants ─────────────────────────────────────────────── */
+/* â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 const CHARGE_TYPES: readonly ChargeType[] = ['fixed', 'non-fixed', 'tenant-specific']
 const CHARGE_TYPE_LABELS: Record<ChargeType, string> = {
@@ -78,7 +78,7 @@ const SUGGESTED_CATEGORIES = [
   'Utilities', 'Rent', 'Internet', 'Parking', 'Laundry', 'Maintenance', 'Other',
 ]
 
-/* ── Component ─────────────────────────────────────────────── */
+/* â”€â”€ Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 export function EditChargeDrawer({ charge, onClose, onSave }: EditChargeDrawerProps) {
   const [propertyId, setPropertyId] = useState('')
@@ -132,7 +132,7 @@ export function EditChargeDrawer({ charge, onClose, onSave }: EditChargeDrawerPr
       open={charge !== null}
       onClose={onClose}
       side="right"
-      width={480}
+      width="50vw"
       title="Edit charge"
       subtitle={charge ? `Editing "${charge.name}"` : ''}
       footer={
@@ -175,11 +175,11 @@ export function EditChargeDrawer({ charge, onClose, onSave }: EditChargeDrawerPr
             onChange={e => setCategory(e.target.value)}
             className={SEL_CLS}
           >
-            <option value="">— select a category —</option>
+            <option value="">â€” select a category â€”</option>
             {SUGGESTED_CATEGORIES.map(c => (
               <option key={c} value={c}>{c}</option>
             ))}
-            <option value="__custom__">Custom…</option>
+            <option value="__custom__">Customâ€¦</option>
           </select>
           {category === '__custom__' && (
             <input
@@ -198,7 +198,7 @@ export function EditChargeDrawer({ charge, onClose, onSave }: EditChargeDrawerPr
           required
           hint={
             type === 'fixed'           ? 'Requires a set amount billed every cycle.' :
-            type === 'non-fixed'       ? 'Amount varies — entered via CSV at billing time.' :
+            type === 'non-fixed'       ? 'Amount varies â€” entered via CSV at billing time.' :
                                          'Attached to a specific tenant, not the room.'
           }
         >
@@ -233,7 +233,7 @@ export function EditChargeDrawer({ charge, onClose, onSave }: EditChargeDrawerPr
           >
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13.5px] text-ink-3 pointer-events-none">
-                ₱
+                â‚±
               </span>
               <input
                 type="number"
@@ -265,3 +265,5 @@ export function EditChargeDrawer({ charge, onClose, onSave }: EditChargeDrawerPr
     </Drawer>
   )
 }
+
+

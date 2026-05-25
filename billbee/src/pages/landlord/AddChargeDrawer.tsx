@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Info } from 'lucide-react'
 import { MOCK_PROPERTIES } from '../../data/mock'
 import type { ChargeScope, ChargeType } from '../../types/charges'
@@ -7,14 +7,14 @@ import { Button } from '../../components/ui/Button'
 import { Callout } from '../../components/ui/Callout'
 import { SegmentedControl } from '../../components/ui/SegmentedControl'
 
-/* ── Props ─────────────────────────────────────────────────── */
+/* â”€â”€ Props â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 interface AddChargeDrawerProps {
   open: boolean
   onClose: () => void
 }
 
-/* ── Helpers ───────────────────────────────────────────────── */
+/* â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 const INPUT_CLS =
   'border border-border rounded-btn px-3 py-2 text-[13.5px] text-ink bg-surface ' +
@@ -45,7 +45,7 @@ function Field({
   )
 }
 
-/* ── Constants ─────────────────────────────────────────────── */
+/* â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 const CHARGE_TYPES: readonly ChargeType[] = ['fixed', 'non-fixed', 'tenant-specific']
 const CHARGE_TYPE_LABELS: Record<ChargeType, string> = {
@@ -63,7 +63,7 @@ const CHARGE_SCOPE_LABELS: Record<ChargeScope, string> = {
 
 const STATUS_OPTIONS = ['active', 'inactive'] as const
 
-// Scope is determined by type — these are the valid pairings
+// Scope is determined by type â€” these are the valid pairings
 const TYPE_SCOPE_MAP: Record<ChargeType, ChargeScope> = {
   'fixed':           'room-level',
   'non-fixed':       'room-level',
@@ -80,7 +80,7 @@ const SUGGESTED_CATEGORIES = [
   'Utilities', 'Rent', 'Internet', 'Parking', 'Laundry', 'Maintenance', 'Other',
 ]
 
-/* ── Component ─────────────────────────────────────────────── */
+/* â”€â”€ Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 export function AddChargeDrawer({ open, onClose }: AddChargeDrawerProps) {
   const [propertyId,  setPropertyId]  = useState(MOCK_PROPERTIES[0]?.id ?? '')
@@ -125,7 +125,7 @@ export function AddChargeDrawer({ open, onClose }: AddChargeDrawerProps) {
       open={open}
       onClose={handleClose}
       side="right"
-      width={480}
+      width="50vw"
       title="Add charge"
       subtitle="Define a new charge that can be attached to rooms or tenants"
       footer={
@@ -169,11 +169,11 @@ export function AddChargeDrawer({ open, onClose }: AddChargeDrawerProps) {
             onChange={e => setCategory(e.target.value)}
             className={SEL_CLS}
           >
-            <option value="">— select a category —</option>
+            <option value="">â€” select a category â€”</option>
             {SUGGESTED_CATEGORIES.map(c => (
               <option key={c} value={c}>{c}</option>
             ))}
-            <option value="__custom__">Custom…</option>
+            <option value="__custom__">Customâ€¦</option>
           </select>
           {category === '__custom__' && (
             <input
@@ -193,7 +193,7 @@ export function AddChargeDrawer({ open, onClose }: AddChargeDrawerProps) {
           required
           hint={
             type === 'fixed'           ? 'Requires a set amount billed every cycle.' :
-            type === 'non-fixed'       ? 'Amount varies — entered via CSV at billing time.' :
+            type === 'non-fixed'       ? 'Amount varies â€” entered via CSV at billing time.' :
                                          'Attached to a specific tenant, not the room.'
           }
         >
@@ -223,7 +223,7 @@ export function AddChargeDrawer({ open, onClose }: AddChargeDrawerProps) {
           />
         </Field>
 
-        {/* Default amount — hidden for non-fixed */}
+        {/* Default amount â€” hidden for non-fixed */}
         {type !== 'non-fixed' && (
           <Field
             label="Default amount"
@@ -232,7 +232,7 @@ export function AddChargeDrawer({ open, onClose }: AddChargeDrawerProps) {
           >
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13.5px] text-ink-3 pointer-events-none">
-                ₱
+                â‚±
               </span>
               <input
                 type="number"
@@ -264,3 +264,5 @@ export function AddChargeDrawer({ open, onClose }: AddChargeDrawerProps) {
     </Drawer>
   )
 }
+
+

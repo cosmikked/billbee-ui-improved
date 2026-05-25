@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef } from 'react'
+﻿import { useState, useEffect, useRef } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { Drawer } from '../../components/ui/Drawer'
 import { Button } from '../../components/ui/Button'
+import { SegmentedControl } from '../../components/ui/SegmentedControl'
 import type { Property } from '../../types/properties'
 
-/* ── Props ─────────────────────────────────────────────────── */
+/* â”€â”€ Props â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 interface EditPropertyDrawerProps {
   /** null = closed */
@@ -13,7 +14,7 @@ interface EditPropertyDrawerProps {
   onSave: (updated: Property) => void
 }
 
-/* ── Shared field styles ───────────────────────────────────── */
+/* â”€â”€ Shared field styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 const INPUT_CLS =
   'border border-border rounded-btn px-3 py-2 text-[13.5px] text-ink bg-surface ' +
@@ -39,9 +40,9 @@ function Field({
   )
 }
 
-/* ── Billing day dropdown ──────────────────────────────────── */
+/* â”€â”€ Billing day dropdown â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
-const DAYS = Array.from({ length: 30 }, (_, i) => i + 1)
+const DAYS = Array.from({ length: 28 }, (_, i) => i + 1)
 
 function BillingDayField({
   value,
@@ -83,7 +84,7 @@ function BillingDayField({
       {open && (
         <div className="absolute left-0 right-0 top-[calc(100%+4px)] z-50 bg-surface border border-border rounded-card shadow-lg p-3 flex flex-col gap-3">
           <p className="text-[11.5px] text-ink-4">Day of the month bills are generated</p>
-          <div className="grid grid-cols-6 gap-1.5">
+          <div className="grid grid-cols-7 gap-1.5">
             {DAYS.map(d => (
               <button
                 key={d}
@@ -106,32 +107,7 @@ function BillingDayField({
   )
 }
 
-/* ── Status toggle ─────────────────────────────────────────── */
-
-function StatusToggle({ active, onChange }: { active: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <div className="flex rounded-btn border border-border overflow-hidden w-fit">
-      {(['active', 'inactive'] as const).map(s => {
-        const isSelected = (s === 'active') === active
-        return (
-          <button
-            key={s}
-            type="button"
-            onClick={() => onChange(s === 'active')}
-            className={[
-              'px-4 py-2 text-[13px] font-medium capitalize transition-colors',
-              isSelected ? 'bg-ink text-bg' : 'bg-surface text-ink-3 hover:bg-surface-2',
-            ].join(' ')}
-          >
-            {s}
-          </button>
-        )
-      })}
-    </div>
-  )
-}
-
-/* ── Component ─────────────────────────────────────────────── */
+/* â”€â”€ Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 export function EditPropertyDrawer({ property, onClose, onSave }: EditPropertyDrawerProps) {
   const [name,       setName]       = useState('')
@@ -164,7 +140,7 @@ export function EditPropertyDrawer({ property, onClose, onSave }: EditPropertyDr
       open={property !== null}
       onClose={onClose}
       side="right"
-      width={480}
+      width="50vw"
       title="Edit property"
       subtitle={property?.name}
       footer={
@@ -201,10 +177,17 @@ export function EditPropertyDrawer({ property, onClose, onSave }: EditPropertyDr
         </Field>
 
         <Field label="Status">
-          <StatusToggle active={active} onChange={setActive} />
+          <SegmentedControl
+            options={['Active', 'Inactive']}
+            value={active ? 'Active' : 'Inactive'}
+            onChange={v => setActive(v === 'Active')}
+          />
         </Field>
 
       </div>
     </Drawer>
   )
 }
+
+
+

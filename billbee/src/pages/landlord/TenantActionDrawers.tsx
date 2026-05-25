@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { AlertTriangle, ArrowRight, Info } from 'lucide-react'
 import { MOCK_ROOMS } from '../../data/mock'
 import { Drawer } from '../../components/ui/Drawer'
@@ -7,7 +7,7 @@ import { Callout } from '../../components/ui/Callout'
 import { Pill } from '../../components/ui/Pill'
 import type { Tenant } from '../../types/tenants'
 
-/* ── Shared helpers ────────────────────────────────────────── */
+/* â”€â”€ Shared helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 const INPUT_CLS =
   'border border-border rounded-btn px-3 py-2 text-[13.5px] text-ink bg-surface ' +
@@ -39,14 +39,14 @@ function Field({
 }
 
 function fmtPHP(n: number) {
-  return `₱${n.toLocaleString('en-PH')}`
+  return `â‚±${n.toLocaleString('en-PH')}`
 }
 
 function todayISO() {
   return new Date().toISOString().split('T')[0]
 }
 
-/* ── Move-out drawer ───────────────────────────────────────── */
+/* â”€â”€ Move-out drawer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 interface MoveOutDrawerProps {
   open: boolean
@@ -84,7 +84,7 @@ export function MoveOutDrawer({ open, onClose, tenant }: MoveOutDrawerProps) {
       open={open}
       onClose={handleClose}
       side="right"
-      width={480}
+      width="50vw"
       title="Move out"
       subtitle={`Close ${tenant.name}'s assignment and keep posted bills payable`}
       footer={
@@ -100,7 +100,7 @@ export function MoveOutDrawer({ open, onClose, tenant }: MoveOutDrawerProps) {
         <div className="rounded-btn border border-border bg-surface-2 px-4 py-3 flex flex-col gap-1">
           <span className="text-[13.5px] font-semibold text-ink">{tenant.name}</span>
           <span className="text-[12.5px] text-ink-3">
-            {tenant.propertyName} · {tenant.roomCode ?? '--'} · since {tenant.moveInLabel}
+            {tenant.propertyName} Â· {tenant.roomCode ?? '--'} Â· since {tenant.moveInLabel}
           </span>
         </div>
 
@@ -121,7 +121,7 @@ export function MoveOutDrawer({ open, onClose, tenant }: MoveOutDrawerProps) {
             onChange={e => setReason(e.target.value)}
             className={INPUT_CLS + ' appearance-none'}
           >
-            <option value="">— select a reason —</option>
+            <option value="">â€” select a reason â€”</option>
             {MOVE_OUT_REASONS.map(r => (
               <option key={r} value={r}>{r}</option>
             ))}
@@ -149,7 +149,7 @@ export function MoveOutDrawer({ open, onClose, tenant }: MoveOutDrawerProps) {
   )
 }
 
-/* ── Transfer room drawer ──────────────────────────────────── */
+/* â”€â”€ Transfer room drawer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 interface TransferRoomDrawerProps {
   open: boolean
@@ -188,7 +188,7 @@ export function TransferRoomDrawer({ open, onClose, tenant }: TransferRoomDrawer
       open={open}
       onClose={handleClose}
       side="right"
-      width={480}
+      width="50vw"
       title="Transfer room"
       subtitle="Move tenant to an active room with available capacity"
       footer={
@@ -210,7 +210,7 @@ export function TransferRoomDrawer({ open, onClose, tenant }: TransferRoomDrawer
         <div className="rounded-btn border border-border bg-surface-2 px-4 py-3 flex flex-col gap-1">
           <span className="text-[13.5px] font-semibold text-ink">{tenant.name}</span>
           <span className="text-[12.5px] text-ink-3">
-            {tenant.propertyName} · {tenant.roomCode ?? '--'} · since {tenant.moveInLabel}
+            {tenant.propertyName} Â· {tenant.roomCode ?? '--'} Â· since {tenant.moveInLabel}
           </span>
         </div>
 
@@ -220,14 +220,14 @@ export function TransferRoomDrawer({ open, onClose, tenant }: TransferRoomDrawer
             <span className="text-[13.5px] text-ink">
               {tenant.propertyName}
               {tenant.roomCode && (
-                <span className="font-mono ml-1.5 text-ink-2">· {tenant.roomCode}</span>
+                <span className="font-mono ml-1.5 text-ink-2">Â· {tenant.roomCode}</span>
               )}
             </span>
             <Pill variant="neutral">current</Pill>
           </div>
         </Field>
 
-        {/* To — room selector */}
+        {/* To â€” room selector */}
         <Field
           label="To"
           required
@@ -254,7 +254,7 @@ export function TransferRoomDrawer({ open, onClose, tenant }: TransferRoomDrawer
                   <div className="flex flex-col gap-0.5">
                     <span className="font-mono text-[13.5px] font-medium">{room.name}</span>
                     <span className="text-[12px] text-ink-3">
-                      {room.tenants.length}/{room.capacity} occupied · {fmtPHP(room.monthlyRentPHP)}/mo
+                      {room.tenants.length}/{room.capacity} occupied Â· {fmtPHP(room.monthlyRentPHP)}/mo
                     </span>
                   </div>
                   {selectedRoomId === room.id && (
@@ -276,7 +276,7 @@ export function TransferRoomDrawer({ open, onClose, tenant }: TransferRoomDrawer
           />
         </Field>
 
-        {/* Info callout — shown when a room is selected */}
+        {/* Info callout â€” shown when a room is selected */}
         {selectedRoom && (
           <Callout variant="info" icon={<Info size={16} strokeWidth={1.75} />}>
             New rent share at <span className="font-mono font-medium">{selectedRoom.name}</span>:{' '}
@@ -291,3 +291,5 @@ export function TransferRoomDrawer({ open, onClose, tenant }: TransferRoomDrawer
     </Drawer>
   )
 }
+
+

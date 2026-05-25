@@ -1,18 +1,21 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Check, Plus, Trash2, Zap } from 'lucide-react'
 import { MOCK_PROPERTIES, MOCK_ROOMS, MOCK_CHARGES } from '../../data/mock'
 import type { ChargeScope } from '../../types/charges'
 import { Drawer } from '../../components/ui/Drawer'
 import { Button } from '../../components/ui/Button'
+import { DatePicker } from '../../components/ui/DatePicker'
 
-/* ── Props ─────────────────────────────────────────────────── */
+/* â”€â”€ Props â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 interface AddTenantDrawerProps {
   open: boolean
   onClose: () => void
+  /** When set, the property field is shown as read-only (drawer opened from within a property) */
+  lockedPropertyId?: string
 }
 
-/* ── Helpers ───────────────────────────────────────────────── */
+/* â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 const INPUT_CLS =
   'border border-border rounded-btn px-3 py-2 text-[13.5px] text-ink bg-surface ' +
@@ -58,10 +61,10 @@ function scopeLabel(scope: ChargeScope) {
 }
 
 function fmtPHP(n: number) {
-  return `₱${n.toLocaleString('en-PH')}`
+  return `â‚±${n.toLocaleString('en-PH')}`
 }
 
-/* ── Custom charge type ────────────────────────────────────── */
+/* â”€â”€ Custom charge type â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 interface CustomCharge {
   id: string
@@ -73,15 +76,15 @@ function newCustomCharge(): CustomCharge {
   return { id: crypto.randomUUID(), name: '', amount: '' }
 }
 
-/* ── Component ─────────────────────────────────────────────── */
+/* â”€â”€ Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
-export function AddTenantDrawer({ open, onClose }: AddTenantDrawerProps) {
+export function AddTenantDrawer({ open, onClose, lockedPropertyId }: AddTenantDrawerProps) {
   const [name,            setName]            = useState('')
   const [phone,           setPhone]           = useState('')
   const [email,           setEmail]           = useState('')
   const [emergencyName,   setEmergencyName]   = useState('')
   const [emergencyPhone,  setEmergencyPhone]  = useState('')
-  const [propertyId,      setPropertyId]      = useState(MOCK_PROPERTIES[0]?.id ?? '')
+  const [propertyId,      setPropertyId]      = useState(lockedPropertyId ?? MOCK_PROPERTIES[0]?.id ?? '')
   const [roomId,          setRoomId]          = useState('')
   const [moveIn,          setMoveIn]          = useState(todayISO())
   const [assignedCharges, setAssignedCharges] = useState<Set<string>>(new Set())
@@ -133,7 +136,7 @@ export function AddTenantDrawer({ open, onClose }: AddTenantDrawerProps) {
     setEmail('')
     setEmergencyName('')
     setEmergencyPhone('')
-    setPropertyId(MOCK_PROPERTIES[0]?.id ?? '')
+    setPropertyId(lockedPropertyId ?? MOCK_PROPERTIES[0]?.id ?? '')
     setRoomId('')
     setMoveIn(todayISO())
     setAssignedCharges(new Set())
@@ -151,7 +154,7 @@ export function AddTenantDrawer({ open, onClose }: AddTenantDrawerProps) {
       open={open}
       onClose={handleClose}
       side="right"
-      width={480}
+      width="50vw"
       title="Add tenant"
       subtitle="Fill in the details to register a new tenant"
       footer={
@@ -192,7 +195,7 @@ export function AddTenantDrawer({ open, onClose }: AddTenantDrawerProps) {
               value={email}
               onChange={e => setEmail(e.target.value)}
               className={INPUT_CLS}
-              placeholder="—"
+              placeholder="â€”"
             />
           </Field>
         </div>
@@ -222,15 +225,21 @@ export function AddTenantDrawer({ open, onClose }: AddTenantDrawerProps) {
 
         {/* Property */}
         <Field label="Property" required>
-          <select
-            value={propertyId}
-            onChange={e => handlePropertyChange(e.target.value)}
-            className={SEL_CLS}
-          >
-            {MOCK_PROPERTIES.filter(p => p.status === 'active').map(p => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
+          {lockedPropertyId ? (
+            <div className={`${INPUT_CLS} text-ink-3 cursor-default select-none`}>
+              {MOCK_PROPERTIES.find(p => p.id === lockedPropertyId)?.name ?? lockedPropertyId}
+            </div>
+          ) : (
+            <select
+              value={propertyId}
+              onChange={e => handlePropertyChange(e.target.value)}
+              className={SEL_CLS}
+            >
+              {MOCK_PROPERTIES.filter(p => p.status === 'active').map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+          )}
         </Field>
 
         {/* Room */}
@@ -241,7 +250,7 @@ export function AddTenantDrawer({ open, onClose }: AddTenantDrawerProps) {
             className={SEL_CLS}
             disabled={availableRooms.length === 0}
           >
-            <option value="">— unassigned —</option>
+            <option value="">â€” unassigned â€”</option>
             {availableRooms.map(r => (
               <option key={r.id} value={r.id}>
                 {r.name} ({r.tenants.length}/{r.capacity} occupied)
@@ -255,15 +264,14 @@ export function AddTenantDrawer({ open, onClose }: AddTenantDrawerProps) {
 
         {/* Move-in date */}
         <Field label="Move-in date" required>
-          <input
-            type="date"
+          <DatePicker
             value={moveIn}
-            onChange={e => setMoveIn(e.target.value)}
-            className={INPUT_CLS}
+            onChange={setMoveIn}
+            placeholder="Select move-in date"
           />
         </Field>
 
-        {/* ── Assign charges ─────────────────────────────── */}
+        {/* â”€â”€ Assign charges â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <div className="flex flex-col gap-2">
           <div>
             <label className="text-[11px] font-semibold uppercase tracking-[0.07em] text-ink-3">
@@ -338,7 +346,7 @@ export function AddTenantDrawer({ open, onClose }: AddTenantDrawerProps) {
                     className={`${INPUT_CLS} flex-1`}
                   />
                   <div className="relative w-[110px] shrink-0">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-ink-3 pointer-events-none">₱</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-ink-3 pointer-events-none">â‚±</span>
                     <input
                       type="number"
                       min={0}
@@ -376,3 +384,5 @@ export function AddTenantDrawer({ open, onClose }: AddTenantDrawerProps) {
     </Drawer>
   )
 }
+
+

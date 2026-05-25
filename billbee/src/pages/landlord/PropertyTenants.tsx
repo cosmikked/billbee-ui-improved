@@ -174,7 +174,7 @@ export function PropertyTenants() {
         />
       </Card>
 
-      <AddTenantDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
+      <AddTenantDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} lockedPropertyId={property.id} />
     </>
   )
 }
