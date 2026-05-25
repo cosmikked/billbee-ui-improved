@@ -1,29 +1,39 @@
 import { Link, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, Building2, DoorOpen, Users,
-  Receipt, FileText, CheckCircle2, TrendingUp, Settings,
+  Receipt, FileText, CheckCircle2, TrendingUp, Settings, Sparkles,
 } from 'lucide-react'
 import { BrandMark } from './BrandMark'
 import type { DashboardUser } from '../../types/dashboard'
 
 const NAV_LINKS = [
-  { icon: LayoutDashboard, label: 'Dashboard',           href: '/landlord/dashboard' },
-  { icon: Building2,       label: 'Properties',          href: '/landlord/properties' },
-  { icon: DoorOpen,        label: 'Rooms',               href: '/landlord/rooms' },
-  { icon: Users,           label: 'Tenants',             href: '/landlord/tenants' },
-  { icon: Receipt,         label: 'Charge Catalog',      href: '/landlord/charges' },
-  { icon: FileText,        label: 'Billing Center',      href: '/landlord/billing' },
-  { icon: CheckCircle2,    label: 'Payments & Receipts', href: '/landlord/payments' },
-  { icon: TrendingUp,      label: 'Reports',             href: '/landlord/reports' },
+  { icon: LayoutDashboard, label: 'Dashboard',           href: '/landlord/dashboard',  prefix: false },
+  { icon: Building2,       label: 'Properties',          href: '/landlord/properties', prefix: false },
+  { icon: DoorOpen,        label: 'Rooms',               href: '/landlord/rooms',      prefix: false },
+  { icon: Users,           label: 'Tenants',             href: '/landlord/tenants',    prefix: false },
+  { icon: Receipt,         label: 'Charge Catalog',      href: '/landlord/charges',    prefix: false },
+  { icon: FileText,        label: 'Billing Center',      href: '/landlord/billing',    prefix: false },
+  { icon: CheckCircle2,    label: 'Payment History', href: '/landlord/payments',   prefix: false },
+  { icon: TrendingUp,      label: 'Reports',             href: '/landlord/reports',    prefix: false },
 ]
 
 interface SidebarProps {
   user: DashboardUser
 }
 
-function NavLink({ href, icon: Icon, label }: { href: string; icon: typeof LayoutDashboard; label: string }) {
+function NavLink({
+  href,
+  icon: Icon,
+  label,
+  prefix = false,
+}: {
+  href: string
+  icon: typeof LayoutDashboard
+  label: string
+  prefix?: boolean
+}) {
   const { pathname } = useLocation()
-  const active = pathname === href
+  const active = prefix ? pathname.startsWith(href) : pathname === href
   return (
     <Link
       to={href}
@@ -59,6 +69,20 @@ export function Sidebar({ user }: SidebarProps) {
 
       {/* Nav links */}
       {NAV_LINKS.map(props => <NavLink key={props.href} {...props} />)}
+
+      {/* ── Improved Billing (v2 prototype) ── */}
+      <div className="mt-2 mb-1 px-3">
+        <div className="border-t border-border" />
+      </div>
+      <div className="px-3 pb-0.5">
+        <p className="text-[10.5px] font-semibold uppercase tracking-widest text-ink-4">Prototype</p>
+      </div>
+      <NavLink
+        href="/landlord/billing-v2"
+        icon={Sparkles}
+        label="Improved Billing"
+        prefix
+      />
 
       <div className="flex-1" />
 

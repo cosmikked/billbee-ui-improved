@@ -19,6 +19,10 @@ import { PostedBill } from './pages/landlord/PostedBill'
 import { PaymentsReceipts } from './pages/landlord/PaymentsReceipts'
 import { Reports } from './pages/landlord/Reports'
 import { RoomDetail } from './pages/landlord/RoomDetail'
+// v2 — Improved Billing prototype
+import { BillsHub }       from './pages/landlord/v2/BillsHub'
+import { CycleDetailV2 }  from './pages/landlord/v2/CycleDetailV2'
+import { CreateBills }    from './pages/landlord/v2/CreateBills'
 
 export default function App() {
   return (
@@ -46,6 +50,10 @@ export default function App() {
           <Route path="billing/posted/:id"          element={<PostedBill />} />
           <Route path="payments"                    element={<PaymentsReceipts />} />
           <Route path="reports"                     element={<Reports />} />
+          {/* v2 — Improved Billing prototype */}
+          <Route path="billing-v2"                  element={<BillsHub />} />
+          <Route path="billing-v2/cycle/:id"        element={<CycleDetailV2 />} />
+          <Route path="billing-v2/create"           element={<CreateBills />} />
           {/* Stub routes — pages not yet implemented */}
           <Route path="*" element={<ComingSoon />} />
         </Route>

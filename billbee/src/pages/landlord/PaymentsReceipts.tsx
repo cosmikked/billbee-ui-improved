@@ -16,7 +16,6 @@ import { IconButton } from '../../components/ui/IconButton'
 import { Card } from '../../components/ui/Card'
 import { Pill } from '../../components/ui/Pill'
 import { Callout } from '../../components/ui/Callout'
-import { Banner } from '../../components/ui/Banner'
 import { Drawer } from '../../components/ui/Drawer'
 import { Modal } from '../../components/ui/Modal'
 
@@ -276,11 +275,10 @@ export function PaymentsReceipts() {
   const navigate                         = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const [payments,      setPayments]      = useState<PaymentRow[]>(PAYMENTS)
-  const [selected,      setSelected]      = useState<PaymentRow | null>(null)
-  const [voidTarget,    setVoidTarget]    = useState<PaymentRow | null>(null)
-  const [voidReason,    setVoidReason]    = useState('')
-  const [bannerVisible, setBannerVisible] = useState(true)
-  const [highlightId,   setHighlightId]   = useState<string | null>(null)
+  const [selected,    setSelected]    = useState<PaymentRow | null>(null)
+  const [voidTarget,  setVoidTarget]  = useState<PaymentRow | null>(null)
+  const [voidReason,  setVoidReason]  = useState('')
+  const [highlightId, setHighlightId] = useState<string | null>(null)
   const highlightRowRef = useRef<HTMLTableRowElement | null>(null)
 
   // On mount: inject new row from query params and highlight it
@@ -344,8 +342,8 @@ export function PaymentsReceipts() {
     <main className="px-8 pt-4 pb-16 max-w-[1320px] mx-auto w-full">
 
       <PageHead
-        title="Payments & Receipts"
-        subtitle="audit list of every recorded payment + the receipt it generated · 1 row per payment"
+        title="Payment History"
+        subtitle="Every payment you've recorded, with the receipt it generated"
         actions={
           <>
             <Button variant="default">
@@ -353,20 +351,12 @@ export function PaymentsReceipts() {
             </Button>
             {failedCount > 0 && (
               <Button variant="default">
-                Resend failed ({failedCount})
+                Resend receipts ({failedCount} failed)
               </Button>
             )}
           </>
         }
       />
-
-      {/* Audit-only notice */}
-      {bannerVisible && (
-        <Banner variant="info" onDismiss={() => setBannerVisible(false)} className="mb-4">
-          Recording happens on the bill — open any posted bill and use the inline Record Payment form.
-          This page is for <strong>audit &amp; export</strong> only.
-        </Banner>
-      )}
 
       {/* Filter chip bar */}
       <div className="flex items-center gap-2 mb-3 flex-wrap">
@@ -387,13 +377,12 @@ export function PaymentsReceipts() {
               <tr className="border-b border-border">
                 <th className={TH}>Date</th>
                 <th className={TH}>Tenant</th>
-                <th className={TH}>Bill #</th>
-                <th className={TH}>Type</th>
                 <th className={`${TH} text-right`}>Amount</th>
-                <th className={TH}>Mode</th>
+                <th className={TH}>Method</th>
                 <th className={TH}>Receipt #</th>
-                <th className={TH}>Email</th>
-                <th className={TH}>Status</th>
+                {/* Secondary columns — less emphasis */}
+                <th className={TH}>Type</th>
+                <th className={TH}>Receipt sent</th>
               </tr>
             </thead>
             <tbody>
@@ -410,33 +399,36 @@ export function PaymentsReceipts() {
                     onClick={() => setSelected(row)}
                     className={[
                       'border-b border-border-subtle cursor-pointer transition-colors duration-700',
-                      isVoid      ? 'opacity-50'                            : '',
-                      isHighlight ? 'bg-accent/10 animate-pulse'            :
-                      isSelected  ? 'bg-accent-tint'                        : 'hover:bg-surface-2',
+                      isVoid      ? 'opacity-50'             : '',
+                      isHighlight ? 'bg-accent/10 animate-pulse' :
+                      isSelected  ? 'bg-accent-tint'         : 'hover:bg-surface-2',
                     ].join(' ')}
                   >
-                    <td className={`${TD} py-[var(--pad-row)] font-mono text-[12px] text-ink-3`}>{row.date}</td>
-                    <td className={`${TD} py-[var(--pad-row)]`}>{row.tenant}</td>
-                    <td className={`${TD} py-[var(--pad-row)] font-mono text-[12.5px] text-ink font-medium`}>{row.billId}</td>
+                    {/* Primary columns */}
+                    <td className={`${TD} py-[var(--pad-row)] font-mono text-[12px] text-ink-3 whitespace-nowrap`}>
+                      {row.date}
+                    </td>
+                    <td className={`${TD} py-[var(--pad-row)]`}>
+                      <div className="font-medium text-ink">{row.tenant}</div>
+                      <div className="text-[11.5px] text-ink-4 font-mono">{row.billId}</div>
+                    </td>
+                    <td className={`${TD} py-[var(--pad-row)] text-right font-mono font-semibold text-ink`}>
+                      {fmtPHP(row.amountPHP)}
+                      {isVoid && <div className="text-[11px] text-danger font-sans font-medium">Void</div>}
+                    </td>
+                    <td className={`${TD} py-[var(--pad-row)] capitalize text-ink-2`}>{row.mode}</td>
+                    <td className={`${TD} py-[var(--pad-row)] font-mono text-[12.5px] text-ink-2`}>
+                      {row.receiptNo}
+                    </td>
+                    {/* Secondary columns */}
                     <td className={`${TD} py-[var(--pad-row)]`}>
                       {row.type === 'advance'
-                        ? <Pill variant="accent">advance</Pill>
-                        : <Pill variant="neutral">regular</Pill>
+                        ? <Pill variant="accent">Advance</Pill>
+                        : <Pill variant="neutral">Regular</Pill>
                       }
                     </td>
-                    <td className={`${TD} py-[var(--pad-row)] text-right font-mono font-medium text-ink`}>
-                      {fmtPHP(row.amountPHP)}
-                    </td>
-                    <td className={`${TD} py-[var(--pad-row)] capitalize`}>{row.mode}</td>
-                    <td className={`${TD} py-[var(--pad-row)] font-mono text-[12.5px]`}>{row.receiptNo}</td>
                     <td className={`${TD} py-[var(--pad-row)]`}>
                       <Pill variant={emailVariant}>{emailLabel}</Pill>
-                    </td>
-                    <td className={`${TD} py-[var(--pad-row)]`}>
-                      {isVoid
-                        ? <Pill variant="neutral">Void</Pill>
-                        : <Pill variant="neutral">Active</Pill>
-                      }
                     </td>
                   </tr>
                 )
@@ -452,8 +444,8 @@ export function PaymentsReceipts() {
         onClose={() => setSelected(null)}
         side="right"
         width={400}
-        title="Payment record"
-        subtitle={selected ? selected.receiptNo : ''}
+        title={selected ? `${selected.tenantFull} · ${selected.type === 'advance' ? selected.advancePeriod ?? selected.period : selected.period}` : 'Payment record'}
+        subtitle={selected ? `Receipt ${selected.receiptNo}` : ''}
         actions={
           selected && selected.type !== 'advance' ? (
             <Button
@@ -464,10 +456,10 @@ export function PaymentsReceipts() {
                 navigate(`/landlord/billing/posted/${selected.billId}`)
               }}
             >
-              open bill <ChevronRight size={12} strokeWidth={2} />
+              Open bill <ChevronRight size={12} strokeWidth={2} />
             </Button>
           ) : selected?.type === 'advance' ? (
-            <span className="text-[11.5px] text-ink-4 italic">future period</span>
+            <span className="text-[11.5px] text-ink-4 italic">Advance · future period</span>
           ) : undefined
         }
       >
