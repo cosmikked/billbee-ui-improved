@@ -10,27 +10,64 @@ function fmtPHP(n: number) {
   return `₱${n.toLocaleString('en-PH')}`
 }
 
-/* ── Types ─────────────────────────────────────────────────── */
-
-interface TenantBillEntry {
-  key:        string
-  roomName:   string
-  tenantName: string
-  rentPHP:    number
-  waterPHP:   number
-  elecPHP:    number
+/** Equal-split amount across N tenants, whole pesos. */
+function splitAmount(total: number, n: number): number {
+  return n > 0 ? Math.round(total / n) : 0
 }
 
-function rowTotal(e: TenantBillEntry) {
-  return e.rentPHP + e.waterPHP + e.elecPHP
+/* ── Data types ────────────────────────────────────────────── */
+
+/** One row in Step 1 — room-level amounts entered by landlord. */
+interface RoomEntry {
+  roomId:      string
+  roomName:    string
+  tenants:     Array<{ id: string; name: string }>
+  roomRentPHP: number   // full room rent (not yet split)
+  waterPHP:    number   // room-level total, entered by landlord
+  elecPHP:     number   // room-level total, entered by landlord
+}
+
+/** One bill produced for Step 2 review — per tenant, derived from RoomEntry. */
+interface TenantBill {
+  key:        string
+  roomId:     string
+  roomName:   string
+  tenantName: string
+  rentShare:  number
+  waterShare: number
+  elecShare:  number
+}
+
+function roomTotal(r: RoomEntry): number {
+  return r.roomRentPHP + r.waterPHP + r.elecPHP
+}
+
+function billTotal(b: TenantBill): number {
+  return b.rentShare + b.waterShare + b.elecShare
+}
+
+/** Expand room entries into individual tenant bills. */
+function expandToBills(rooms: RoomEntry[]): TenantBill[] {
+  return rooms.flatMap(room => {
+    const n = room.tenants.length
+    return room.tenants.map(t => ({
+      key:        `${room.roomId}-${t.id}`,
+      roomId:     room.roomId,
+      roomName:   room.roomName,
+      tenantName: t.name,
+      rentShare:  splitAmount(room.roomRentPHP, n),
+      waterShare: splitAmount(room.waterPHP,    n),
+      elecShare:  splitAmount(room.elecPHP,     n),
+    }))
+  })
 }
 
 /* ── Shared table styles ───────────────────────────────────── */
 
-const COL5 = 'grid-cols-[2fr_1fr_1fr_1fr_1.2fr]'
-const HEAD_CELL = 'px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-ink-3'
+const TH = 'px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-ink-3 text-left whitespace-nowrap'
+const TD = 'px-4 py-3 text-[13.5px] align-middle'
 
-/* ── Step 1: Enter charges ─────────────────────────────────── */
+/* ── Number input ──────────────────────────────────────────── */
 
 function NumberInput({
   value,
@@ -40,8 +77,8 @@ function NumberInput({
   onChange: (v: number) => void
 }) {
   return (
-    <div className="flex items-center border border-border rounded-btn overflow-hidden focus-within:border-accent transition-ui bg-surface">
-      <span className="pl-2.5 text-[13px] text-ink-4 select-none">₱</span>
+    <div className="flex items-center border border-border rounded-btn overflow-hidden focus-within:border-accent transition-ui bg-surface w-[110px]">
+      <span className="pl-2.5 text-[13px] text-ink-4 select-none shrink-0">₱</span>
       <input
         type="number"
         min={0}
@@ -54,23 +91,26 @@ function NumberInput({
   )
 }
 
+/* ── Step 1: Enter charges per room ───────────────────────── */
+
 function Step1({
-  entries,
+  rooms,
   onChange,
   onNext,
 }: {
-  entries: TenantBillEntry[]
-  onChange: (key: string, field: 'waterPHP' | 'elecPHP', value: number) => void
+  rooms: RoomEntry[]
+  onChange: (roomId: string, field: 'waterPHP' | 'elecPHP', value: number) => void
   onNext: () => void
 }) {
-  const grandTotal = entries.reduce((s, e) => s + rowTotal(e), 0)
+  const totalBills = rooms.reduce((s, r) => s + r.tenants.length, 0)
+  const grandTotal = rooms.reduce((s, r) => s + roomTotal(r), 0)
 
   return (
     <div>
-      {/* Subtitle + import button */}
       <div className="flex items-start justify-between gap-4 mb-5">
         <p className="text-[14px] text-ink-3 leading-relaxed">
-          Rent is pre-filled from your room settings. Enter water and electricity charges for each tenant, then click <strong className="text-ink font-medium">Review bills</strong>.
+          Enter the water and electricity reading for each room. The system will divide the amounts
+          equally among the room's tenants when generating individual bills.
         </p>
         <button
           type="button"
@@ -81,51 +121,64 @@ function Step1({
         </button>
       </div>
 
-      {/* Table */}
       <div className="border border-border rounded-btn overflow-hidden mb-5">
-        {/* Header */}
-        <div className={`grid ${COL5} bg-surface-2 border-b border-border`}>
-          {['Tenant / Room', 'Rent', 'Water (₱)', 'Electricity (₱)', 'Total'].map(h => (
-            <div key={h} className={HEAD_CELL}>{h}</div>
-          ))}
-        </div>
-
-        {/* Rows */}
-        {entries.map(entry => (
-          <div
-            key={entry.key}
-            className={`grid ${COL5} border-b border-border last:border-0 items-center bg-surface`}
-          >
-            <div className="px-4 py-3">
-              <p className="text-[13.5px] font-medium text-ink">{entry.tenantName}</p>
-              <p className="text-[12px] text-ink-4">Room {entry.roomName}</p>
-            </div>
-            <div className="px-4 py-3">
-              <span className="font-mono text-[13.5px] text-ink-2">{fmtPHP(entry.rentPHP)}</span>
-            </div>
-            <div className="px-3 py-2">
-              <NumberInput value={entry.waterPHP} onChange={v => onChange(entry.key, 'waterPHP', v)} />
-            </div>
-            <div className="px-3 py-2">
-              <NumberInput value={entry.elecPHP} onChange={v => onChange(entry.key, 'elecPHP', v)} />
-            </div>
-            <div className="px-4 py-3">
-              <span className="font-mono text-[14px] font-semibold text-ink">{fmtPHP(rowTotal(entry))}</span>
-            </div>
-          </div>
-        ))}
-
-        {/* Footer total */}
-        <div className={`grid ${COL5} bg-surface-2 border-t border-border`}>
-          <div className="px-4 py-3 col-span-4">
-            <span className="text-[13px] font-semibold text-ink">
-              {entries.length} bills · Grand total
-            </span>
-          </div>
-          <div className="px-4 py-3">
-            <span className="font-mono text-[15px] font-bold text-ink">{fmtPHP(grandTotal)}</span>
-          </div>
-        </div>
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="border-b border-border bg-surface-2">
+              <th className={TH}>Room</th>
+              <th className={TH}>Tenants</th>
+              <th className={TH}>Room Rent</th>
+              <th className={TH}>Water</th>
+              <th className={TH}>Electricity</th>
+              <th className={`${TH} text-right`}>Room Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rooms.map(room => (
+              <tr
+                key={room.roomId}
+                className="border-b border-border last:border-0 bg-surface"
+              >
+                <td className={`${TD} font-semibold text-ink`}>
+                  {room.roomName}
+                </td>
+                <td className={`${TD} text-ink-3`}>
+                  {room.tenants.length === 1
+                    ? '1 tenant'
+                    : `${room.tenants.length} tenants`}
+                </td>
+                <td className={`${TD} font-mono text-ink-2`}>
+                  {fmtPHP(room.roomRentPHP)}
+                </td>
+                <td className={`${TD}`}>
+                  <NumberInput
+                    value={room.waterPHP}
+                    onChange={v => onChange(room.roomId, 'waterPHP', v)}
+                  />
+                </td>
+                <td className={`${TD}`}>
+                  <NumberInput
+                    value={room.elecPHP}
+                    onChange={v => onChange(room.roomId, 'elecPHP', v)}
+                  />
+                </td>
+                <td className={`${TD} text-right font-mono font-semibold text-ink`}>
+                  {fmtPHP(roomTotal(room))}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr className="border-t-2 border-border-strong bg-surface-2">
+              <td className={`${TD} font-semibold text-ink`} colSpan={5}>
+                {rooms.length} rooms · {totalBills} bills will be created
+              </td>
+              <td className={`${TD} text-right font-mono text-[15px] font-bold text-ink`}>
+                {fmtPHP(grandTotal)}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
       </div>
 
       <div className="flex justify-end">
@@ -138,29 +191,30 @@ function Step1({
   )
 }
 
-/* ── Step 2: Review & confirm ──────────────────────────────── */
-
-const COL5_R = 'grid-cols-[2fr_1fr_1fr_1fr_1.2fr]'
+/* ── Step 2: Review per-tenant bills ──────────────────────── */
 
 function Step2({
-  entries,
+  bills,
+  rooms,
   dueDate,
   onDueDateChange,
   onBack,
   onConfirm,
 }: {
-  entries: TenantBillEntry[]
-  dueDate: string
-  onDueDateChange: (d: string) => void
-  onBack: () => void
-  onConfirm: () => void
+  bills:            TenantBill[]
+  rooms:            RoomEntry[]
+  dueDate:          string
+  onDueDateChange:  (d: string) => void
+  onBack:           () => void
+  onConfirm:        () => void
 }) {
-  const grandTotal = entries.reduce((s, e) => s + rowTotal(e), 0)
+  const grandTotal = bills.reduce((s, b) => s + billTotal(b), 0)
 
   return (
     <div>
       <p className="text-[14px] text-ink-3 mb-5 leading-relaxed">
-        Once you confirm, a <strong className="text-ink font-medium">draft bill</strong> will be created for each tenant. You can review each one before sending it to your tenants.
+        Water and electricity have been split equally among room tenants. Review each bill
+        below, set a due date, then confirm to create all drafts.
       </p>
 
       {/* Due date */}
@@ -175,40 +229,73 @@ function Step2({
         <span className="text-[12px] text-ink-4 ml-auto">Tenants will see this on their bill</span>
       </div>
 
-      {/* Review table */}
+      {/* Per-tenant review table, grouped by room */}
       <div className="border border-border rounded-btn overflow-hidden mb-5">
-        <div className={`grid ${COL5_R} bg-surface-2 border-b border-border`}>
-          {['Tenant / Room', 'Rent', 'Water', 'Electricity', 'Total'].map(h => (
-            <div key={h} className={HEAD_CELL}>{h}</div>
-          ))}
-        </div>
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="border-b border-border bg-surface-2">
+              <th className={TH}>Tenant</th>
+              <th className={TH}>Room</th>
+              <th className={`${TH} text-right`}>Rent</th>
+              <th className={`${TH} text-right`}>Water</th>
+              <th className={`${TH} text-right`}>Electricity</th>
+              <th className={`${TH} text-right`}>Bill Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rooms.map((room, ri) => {
+              const roomBills = bills.filter(b => b.roomId === room.roomId)
 
-        {entries.map(entry => (
-          <div
-            key={entry.key}
-            className={`grid ${COL5_R} border-b border-border last:border-0 items-center bg-surface`}
-          >
-            <div className="px-4 py-2.5">
-              <p className="text-[13.5px] font-medium text-ink">{entry.tenantName}</p>
-              <p className="text-[12px] text-ink-4">Room {entry.roomName}</p>
-            </div>
-            <div className="px-4 py-2.5 font-mono text-[13.5px] text-ink-2">{fmtPHP(entry.rentPHP)}</div>
-            <div className="px-4 py-2.5 font-mono text-[13.5px] text-ink-2">{fmtPHP(entry.waterPHP)}</div>
-            <div className="px-4 py-2.5 font-mono text-[13.5px] text-ink-2">{fmtPHP(entry.elecPHP)}</div>
-            <div className="px-4 py-2.5 font-mono text-[14px] font-semibold text-ink">{fmtPHP(rowTotal(entry))}</div>
-          </div>
-        ))}
+              return roomBills.map((bill, bi) => {
+                const isLastInRoom = bi === roomBills.length - 1
+                const isLastRoom   = ri === rooms.length - 1
 
-        <div className={`grid ${COL5_R} bg-surface-2 border-t border-border`}>
-          <div className="px-4 py-3 col-span-4">
-            <span className="text-[13px] font-semibold text-ink">
-              {entries.length} bills · Grand total
-            </span>
-          </div>
-          <div className="px-4 py-3">
-            <span className="font-mono text-[15px] font-bold text-ink">{fmtPHP(grandTotal)}</span>
-          </div>
-        </div>
+                return (
+                  <tr
+                    key={bill.key}
+                    className={[
+                      'bg-surface transition-colors',
+                      !isLastInRoom || !isLastRoom
+                        ? isLastInRoom
+                          ? 'border-b-2 border-border-strong'
+                          : 'border-b border-border'
+                        : '',
+                    ].join(' ')}
+                  >
+                    <td className={`${TD} font-medium text-ink`}>
+                      {bill.tenantName}
+                    </td>
+                    <td className={`${TD} text-ink-3`}>
+                      {bill.roomName}
+                    </td>
+                    <td className={`${TD} text-right font-mono text-ink-2`}>
+                      {fmtPHP(bill.rentShare)}
+                    </td>
+                    <td className={`${TD} text-right font-mono text-ink-2`}>
+                      {fmtPHP(bill.waterShare)}
+                    </td>
+                    <td className={`${TD} text-right font-mono text-ink-2`}>
+                      {fmtPHP(bill.elecShare)}
+                    </td>
+                    <td className={`${TD} text-right font-mono font-semibold text-ink`}>
+                      {fmtPHP(billTotal(bill))}
+                    </td>
+                  </tr>
+                )
+              })
+            })}
+          </tbody>
+          <tfoot>
+            <tr className="border-t-2 border-border-strong bg-surface-2">
+              <td className={`${TD} font-semibold text-ink`} colSpan={5}>
+                {bills.length} bills · Grand total
+              </td>
+              <td className={`${TD} text-right font-mono text-[15px] font-bold text-ink`}>
+                {fmtPHP(grandTotal)}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
       </div>
 
       <div className="flex items-center justify-between">
@@ -218,7 +305,7 @@ function Step2({
         </Button>
         <Button variant="accent" size="md" onClick={onConfirm}>
           <Check size={14} strokeWidth={2} />
-          Create {entries.length} bills
+          Create {bills.length} bills
         </Button>
       </div>
     </div>
@@ -228,31 +315,28 @@ function Step2({
 /* ── Step indicator ────────────────────────────────────────── */
 
 function StepBar({ step }: { step: 1 | 2 }) {
-  const steps = [
-    { n: 1, label: 'Enter charges' },
-    { n: 2, label: 'Review & confirm' },
-  ]
   return (
     <div className="flex items-center gap-3 mb-7">
-      {steps.map(({ n, label }, i) => {
+      {([
+        { n: 1 as const, label: 'Enter room charges' },
+        { n: 2 as const, label: 'Review & confirm' },
+      ]).map(({ n, label }, i, arr) => {
         const done   = step > n
         const active = step === n
         return (
           <div key={n} className="flex items-center gap-2">
-            <div
-              className={[
-                'w-6 h-6 rounded-full flex items-center justify-center text-[12px] font-bold shrink-0 transition-ui',
-                done   ? 'bg-success text-white' :
-                active ? 'bg-ink text-white'     :
-                         'bg-surface-2 text-ink-4 border border-border',
-              ].join(' ')}
-            >
+            <div className={[
+              'w-6 h-6 rounded-full flex items-center justify-center text-[12px] font-bold shrink-0 transition-ui',
+              done   ? 'bg-success text-white' :
+              active ? 'bg-ink text-white'     :
+                       'bg-surface-2 text-ink-4 border border-border',
+            ].join(' ')}>
               {done ? '✓' : n}
             </div>
             <span className={`text-[13.5px] font-medium ${active ? 'text-ink' : 'text-ink-3'}`}>
               {label}
             </span>
-            {i < steps.length - 1 && (
+            {i < arr.length - 1 && (
               <ArrowRight size={13} strokeWidth={1.75} className="text-ink-4 ml-1 shrink-0" />
             )}
           </div>
@@ -268,7 +352,9 @@ function SuccessScreen() {
   return (
     <main className="flex items-center justify-center min-h-[40vh]">
       <div className="text-center">
-        <p className="text-[48px] mb-3">✅</p>
+        <div className="w-12 h-12 rounded-full bg-success/10 border border-success/30 flex items-center justify-center mx-auto mb-4">
+          <Check size={22} strokeWidth={2} className="text-success" />
+        </div>
         <p className="text-[20px] font-semibold text-ink">Bills created!</p>
         <p className="text-[14px] text-ink-3 mt-1">Taking you back to the cycle…</p>
       </div>
@@ -279,33 +365,36 @@ function SuccessScreen() {
 /* ── Page ──────────────────────────────────────────────────── */
 
 export function CreateBills() {
-  const navigate      = useNavigate()
+  const navigate       = useNavigate()
   const [searchParams] = useSearchParams()
-  const propertyId    = searchParams.get('property') ?? 'sunset-mar-2026'
+  const propertyId     = searchParams.get('property') ?? 'sunset-mar-2026'
 
-  /* Build tenant rows from occupied rooms */
-  const initialEntries = useMemo<TenantBillEntry[]>(() =>
+  /** Build initial room entries from occupied rooms in mock data. */
+  const initialRooms = useMemo<RoomEntry[]>(() =>
     MOCK_ROOMS
       .filter(r => r.status === 'active' && r.tenants.length > 0)
-      .flatMap(room =>
-        room.tenants.map(t => ({
-          key:        `${room.id}-${t.id}`,
-          roomName:   room.name,
-          tenantName: t.name,
-          rentPHP:    Math.round(room.monthlyRentPHP / Math.max(1, room.tenants.length)),
-          waterPHP:   0,
-          elecPHP:    0,
-        }))
-      ),
+      .map(room => ({
+        roomId:      room.id,
+        roomName:    room.name,
+        tenants:     room.tenants.map(t => ({ id: t.id, name: t.name })),
+        roomRentPHP: room.monthlyRentPHP,
+        waterPHP:    0,
+        elecPHP:     0,
+      })),
   [])
 
   const [step,    setStep]    = useState<1 | 2>(1)
-  const [entries, setEntries] = useState<TenantBillEntry[]>(initialEntries)
+  const [rooms,   setRooms]   = useState<RoomEntry[]>(initialRooms)
   const [dueDate, setDueDate] = useState('2026-03-15')
   const [done,    setDone]    = useState(false)
 
-  function handleChange(key: string, field: 'waterPHP' | 'elecPHP', value: number) {
-    setEntries(prev => prev.map(e => e.key === key ? { ...e, [field]: value } : e))
+  /** Derived per-tenant bills — recomputed whenever room entries change. */
+  const bills = useMemo(() => expandToBills(rooms), [rooms])
+
+  function handleChange(roomId: string, field: 'waterPHP' | 'elecPHP', value: number) {
+    setRooms(prev =>
+      prev.map(r => r.roomId === roomId ? { ...r, [field]: value } : r)
+    )
   }
 
   function handleConfirm() {
@@ -339,14 +428,22 @@ export function CreateBills() {
       <StepBar step={step} />
 
       {step === 1
-        ? <Step1 entries={entries} onChange={handleChange} onNext={() => setStep(2)} />
-        : <Step2
-            entries={entries}
+        ? (
+          <Step1
+            rooms={rooms}
+            onChange={handleChange}
+            onNext={() => setStep(2)}
+          />
+        ) : (
+          <Step2
+            bills={bills}
+            rooms={rooms}
             dueDate={dueDate}
             onDueDateChange={setDueDate}
             onBack={() => setStep(1)}
             onConfirm={handleConfirm}
           />
+        )
       }
 
     </main>
