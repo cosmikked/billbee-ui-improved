@@ -1,5 +1,12 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { LandlordLayout } from './layouts/LandlordLayout'
+import { AdminLayout } from './layouts/AdminLayout'
+import { AdminDashboard } from './pages/admin/AdminDashboard'
+import { UserManagement } from './pages/admin/UserManagement'
+import { AuditLogs } from './pages/admin/AuditLogs'
+import { Backups } from './pages/admin/Backups'
+import { AdminReports } from './pages/admin/AdminReports'
+import { SiteSettings } from './pages/admin/SiteSettings'
 import { Dashboard } from './pages/landlord/Dashboard'
 import { Properties } from './pages/landlord/Properties'
 import { PropertyLayout } from './pages/landlord/PropertyLayout'
@@ -58,6 +65,18 @@ export default function App() {
           <Route path="*" element={<ComingSoon />} />
         </Route>
         <Route path="*" element={<Navigate to="/landlord/dashboard" replace />} />
+
+        {/* ── Admin routes ── */}
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<Navigate to="/admin/dashboard" replace />} />
+          <Route path="dashboard" element={<AdminDashboard />} />
+          <Route path="users"          element={<UserManagement />} />
+          <Route path="audit-logs"    element={<AuditLogs />} />
+          <Route path="backups"       element={<Backups />} />
+          <Route path="reports"       element={<AdminReports />} />
+          <Route path="settings"      element={<SiteSettings />} />
+          <Route path="*" element={<ComingSoon />} />
+        </Route>
       </Routes>
     </BrowserRouter>
   )

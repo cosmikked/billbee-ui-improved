@@ -30,28 +30,40 @@ interface Crumb {
 }
 
 const SEGMENT_LABELS: Record<string, string> = {
-  dashboard:  'Dashboard',
-  properties: 'Properties',
-  charges:    'Charge Catalog',
-  rooms:      'Rooms',
-  tenants:    'Tenants',
-  billing:    'Billing Center',
-  payments:   'Payments & Receipts',
-  reports:    'Reports',
-  generate:   'Generate Bills',
-  draft:      'Draft Bill',
-  posted:     'Posted Bill',
-  cycle:      'Cycle Detail',
+  dashboard:        'Dashboard',
+  properties:       'Properties',
+  charges:          'Charge Catalog',
+  rooms:            'Rooms',
+  tenants:          'Tenants',
+  billing:          'Billing Center',
+  payments:         'Payments & Receipts',
+  reports:          'Reports',
+  generate:         'Generate Bills',
+  draft:            'Draft Bill',
+  posted:           'Posted Bill',
+  cycle:            'Cycle Detail',
+  // Admin segments
+  users:            'User Management',
+  'audit-logs':     'Audit Logs',
+  backups:          'Backups',
+  'import-export':  'Import & Export',
+  'pdf-printing':   'PDF & Printing',
+  'data-controls':  'Data Controls',
+  settings:         'Settings',
+  notifications:    'Notifications & Alerts',
 }
 
 function useBreadcrumbs(): Crumb[] {
   const { pathname } = useLocation()
 
-  // Strip leading /landlord/
-  const parts = pathname.replace(/^\/landlord\/?/, '').split('/').filter(Boolean)
+  const isAdmin = pathname.startsWith('/admin')
+  const base = isAdmin ? '/admin' : '/landlord'
+
+  // Strip leading /landlord/ or /admin/
+  const parts = pathname.replace(/^\/(landlord|admin)\/?/, '').split('/').filter(Boolean)
 
   const crumbs: Crumb[] = []
-  let builtPath = '/landlord'
+  let builtPath = base
 
   for (let i = 0; i < parts.length; i++) {
     const seg = parts[i]
